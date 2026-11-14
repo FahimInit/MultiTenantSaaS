@@ -184,6 +184,7 @@ public sealed class SuspendTenantHandler : ICommandHandler<SuspendTenantCommand,
 {
     private readonly IValidator<SuspendTenantCommand> _validator;
     private readonly IPlatformAdminStore _platformAdminStore;
+    private readonly ITenantPermissionCacheInvalidator _cacheInvalidator;
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -192,6 +193,7 @@ public sealed class SuspendTenantHandler : ICommandHandler<SuspendTenantCommand,
     public SuspendTenantHandler(
         IValidator<SuspendTenantCommand> validator,
         IPlatformAdminStore platformAdminStore,
+        ITenantPermissionCacheInvalidator cacheInvalidator,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
@@ -199,6 +201,7 @@ public sealed class SuspendTenantHandler : ICommandHandler<SuspendTenantCommand,
     {
         _validator = validator;
         _platformAdminStore = platformAdminStore;
+        _cacheInvalidator = cacheInvalidator;
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
         _dateTimeProvider = dateTimeProvider;
@@ -217,6 +220,7 @@ public sealed class SuspendTenantHandler : ICommandHandler<SuspendTenantCommand,
         var now = _dateTimeProvider.UtcNow;
         tenant.Suspend(command.Reason, now);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cacheInvalidator.InvalidateTenantMembersAsync(tenant.Id, cancellationToken);
 
         await _auditLogger.LogPlatformAsync(
             _currentUser.UserId,
@@ -237,6 +241,7 @@ public sealed class SuspendTenantHandler : ICommandHandler<SuspendTenantCommand,
 public sealed class ReactivateTenantHandler : ICommandHandler<ReactivateTenantCommand, PlatformTenantDetailDto>
 {
     private readonly IPlatformAdminStore _platformAdminStore;
+    private readonly ITenantPermissionCacheInvalidator _cacheInvalidator;
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -244,12 +249,14 @@ public sealed class ReactivateTenantHandler : ICommandHandler<ReactivateTenantCo
 
     public ReactivateTenantHandler(
         IPlatformAdminStore platformAdminStore,
+        ITenantPermissionCacheInvalidator cacheInvalidator,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
         IAuditLogger auditLogger)
     {
         _platformAdminStore = platformAdminStore;
+        _cacheInvalidator = cacheInvalidator;
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
         _dateTimeProvider = dateTimeProvider;
@@ -266,6 +273,7 @@ public sealed class ReactivateTenantHandler : ICommandHandler<ReactivateTenantCo
         var now = _dateTimeProvider.UtcNow;
         tenant.Activate(now);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cacheInvalidator.InvalidateTenantMembersAsync(tenant.Id, cancellationToken);
 
         await _auditLogger.LogPlatformAsync(
             _currentUser.UserId,

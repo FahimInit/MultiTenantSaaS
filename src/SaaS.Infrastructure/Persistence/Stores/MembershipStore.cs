@@ -99,19 +99,37 @@ public sealed class MembershipStore : IMembershipStore
         Guid membershipId,
         CancellationToken cancellationToken = default)
     {
-        return await (
-            from m in _dbContext.TenantMemberships
-            join u in _dbContext.Users.AsNoTracking() on m.UserId equals u.Id
-            join r in _dbContext.TenantRoles.AsNoTracking()
-                on new { m.TenantId, m.RoleId } equals new { r.TenantId, RoleId = r.Id }
-            where m.TenantId == tenantId && m.Id == membershipId
-            select new MemberDetailWithRole(
-                m,
-                u.Email ?? string.Empty,
+        var membership = await _dbContext.TenantMemberships
+            .FirstOrDefaultAsync(m => m.TenantId == tenantId && m.Id == membershipId, cancellationToken);
+
+        if (membership is null)
+        {
+            return null;
+        }
+
+        var metadata = await (
+            from u in _dbContext.Users.AsNoTracking()
+            from r in _dbContext.TenantRoles.IgnoreQueryFilters().AsNoTracking()
+            where u.Id == membership.UserId
+                  && r.TenantId == tenantId
+                  && r.Id == membership.RoleId
+            select new
+            {
+                Email = u.Email ?? string.Empty,
                 u.FullName,
-                r.Code,
-                r.Name))
+                RoleCode = r.Code,
+                RoleName = r.Name
+            })
             .FirstOrDefaultAsync(cancellationToken);
+
+        return metadata is null
+            ? null
+            : new MemberDetailWithRole(
+                membership,
+                metadata.Email,
+                metadata.FullName,
+                metadata.RoleCode,
+                metadata.RoleName);
     }
 
     public Task<TenantMembership?> FindByTenantAndUserAsync(

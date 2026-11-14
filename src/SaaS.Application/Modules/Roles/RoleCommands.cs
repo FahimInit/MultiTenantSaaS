@@ -145,6 +145,7 @@ public sealed class UpdateRoleHandler : ICommandHandler<UpdateRoleCommand, Tenan
     private readonly ICurrentUser _currentUser;
     private readonly IRoleStore _roleStore;
     private readonly ISubscriptionQuotaService _quotaService;
+    private readonly ITenantPermissionCacheInvalidator _cacheInvalidator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IAuditLogger _auditLogger;
@@ -155,6 +156,7 @@ public sealed class UpdateRoleHandler : ICommandHandler<UpdateRoleCommand, Tenan
         ICurrentUser currentUser,
         IRoleStore roleStore,
         ISubscriptionQuotaService quotaService,
+        ITenantPermissionCacheInvalidator cacheInvalidator,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
         IAuditLogger auditLogger)
@@ -164,6 +166,7 @@ public sealed class UpdateRoleHandler : ICommandHandler<UpdateRoleCommand, Tenan
         _currentUser = currentUser;
         _roleStore = roleStore;
         _quotaService = quotaService;
+        _cacheInvalidator = cacheInvalidator;
         _unitOfWork = unitOfWork;
         _dateTimeProvider = dateTimeProvider;
         _auditLogger = auditLogger;
@@ -196,6 +199,7 @@ public sealed class UpdateRoleHandler : ICommandHandler<UpdateRoleCommand, Tenan
 
         role.UpdateDetails(trimmedName, command.Description, command.Permissions, _dateTimeProvider.UtcNow);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cacheInvalidator.InvalidateTenantMembersAsync(tenantId, cancellationToken);
 
         var memberCount = await _roleStore.CountRoleReferencesAsync(tenantId, role.Id, cancellationToken);
 

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
 using SaaS.API.Extensions;
 using SaaS.API.Middleware;
 using SaaS.API.Options;
@@ -56,7 +57,7 @@ builder.Services
     .AddPlatformAuthenticationAndAuthorization()
     .AddPlatformApiVersioning()
     .AddPlatformSwagger()
-    .AddPlatformRateLimiting();
+    .AddPlatformRateLimiting(builder.Configuration);
 
 var app = builder.Build();
 
@@ -87,7 +88,16 @@ app.UseAuthentication();
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
-app.MapControllers().RequireRateLimiting(RateLimitingExtensions.ApiPolicyName);
+app.MapControllers().Add(endpointBuilder =>
+{
+    var hasExplicitPolicy = endpointBuilder.Metadata.Any(m =>
+        m is EnableRateLimitingAttribute or DisableRateLimitingAttribute);
+
+    if (!hasExplicitPolicy)
+    {
+        endpointBuilder.Metadata.Add(new EnableRateLimitingAttribute(RateLimitingExtensions.ApiPolicyName));
+    }
+});
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {

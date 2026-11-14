@@ -90,6 +90,7 @@ public sealed class UpdateMemberRoleHandler : ICommandHandler<UpdateMemberRoleCo
     private readonly IMembershipStore _membershipStore;
     private readonly IRoleStore _roleStore;
     private readonly ISubscriptionQuotaService _quotaService;
+    private readonly ITenantPermissionCacheInvalidator _cacheInvalidator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IAuditLogger _auditLogger;
@@ -101,6 +102,7 @@ public sealed class UpdateMemberRoleHandler : ICommandHandler<UpdateMemberRoleCo
         IMembershipStore membershipStore,
         IRoleStore roleStore,
         ISubscriptionQuotaService quotaService,
+        ITenantPermissionCacheInvalidator cacheInvalidator,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
         IAuditLogger auditLogger)
@@ -111,6 +113,7 @@ public sealed class UpdateMemberRoleHandler : ICommandHandler<UpdateMemberRoleCo
         _membershipStore = membershipStore;
         _roleStore = roleStore;
         _quotaService = quotaService;
+        _cacheInvalidator = cacheInvalidator;
         _unitOfWork = unitOfWork;
         _dateTimeProvider = dateTimeProvider;
         _auditLogger = auditLogger;
@@ -163,6 +166,7 @@ public sealed class UpdateMemberRoleHandler : ICommandHandler<UpdateMemberRoleCo
         var previousRoleCode = target.RoleCode;
         target.Membership.ChangeRole(targetRole.Id, _dateTimeProvider.UtcNow);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _cacheInvalidator.InvalidateUserTenantAsync(tenantId, target.Membership.UserId, cancellationToken);
 
         await _auditLogger.LogTenantAsync(
             tenantId,
@@ -203,6 +207,7 @@ public sealed class UpdateMemberStatusHandler : ICommandHandler<UpdateMemberStat
     private readonly ICurrentUser _currentUser;
     private readonly IMembershipStore _membershipStore;
     private readonly ISubscriptionQuotaService _quotaService;
+    private readonly ITenantPermissionCacheInvalidator _cacheInvalidator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IAuditLogger _auditLogger;
@@ -213,6 +218,7 @@ public sealed class UpdateMemberStatusHandler : ICommandHandler<UpdateMemberStat
         ICurrentUser currentUser,
         IMembershipStore membershipStore,
         ISubscriptionQuotaService quotaService,
+        ITenantPermissionCacheInvalidator cacheInvalidator,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
         IAuditLogger auditLogger)
@@ -222,6 +228,7 @@ public sealed class UpdateMemberStatusHandler : ICommandHandler<UpdateMemberStat
         _currentUser = currentUser;
         _membershipStore = membershipStore;
         _quotaService = quotaService;
+        _cacheInvalidator = cacheInvalidator;
         _unitOfWork = unitOfWork;
         _dateTimeProvider = dateTimeProvider;
         _auditLogger = auditLogger;
@@ -292,6 +299,8 @@ public sealed class UpdateMemberStatusHandler : ICommandHandler<UpdateMemberStat
             await _unitOfWork.SaveChangesAsync(ct);
         }, cancellationToken);
 
+        await _cacheInvalidator.InvalidateUserTenantAsync(tenantId, target.Membership.UserId, cancellationToken);
+
         await _auditLogger.LogTenantAsync(
             tenantId,
             actorId,
@@ -324,6 +333,7 @@ public sealed class RemoveMemberHandler : ICommandHandler<RemoveMemberCommand>
     private readonly ICurrentUser _currentUser;
     private readonly IMembershipStore _membershipStore;
     private readonly ISubscriptionQuotaService _quotaService;
+    private readonly ITenantPermissionCacheInvalidator _cacheInvalidator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IAuditLogger _auditLogger;
@@ -333,6 +343,7 @@ public sealed class RemoveMemberHandler : ICommandHandler<RemoveMemberCommand>
         ICurrentUser currentUser,
         IMembershipStore membershipStore,
         ISubscriptionQuotaService quotaService,
+        ITenantPermissionCacheInvalidator cacheInvalidator,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
         IAuditLogger auditLogger)
@@ -341,6 +352,7 @@ public sealed class RemoveMemberHandler : ICommandHandler<RemoveMemberCommand>
         _currentUser = currentUser;
         _membershipStore = membershipStore;
         _quotaService = quotaService;
+        _cacheInvalidator = cacheInvalidator;
         _unitOfWork = unitOfWork;
         _dateTimeProvider = dateTimeProvider;
         _auditLogger = auditLogger;
@@ -391,6 +403,8 @@ public sealed class RemoveMemberHandler : ICommandHandler<RemoveMemberCommand>
             await _quotaService.SyncUsageCountsAsync(tenantId, ct);
             await _unitOfWork.SaveChangesAsync(ct);
         }, cancellationToken);
+
+        await _cacheInvalidator.InvalidateUserTenantAsync(tenantId, target.Membership.UserId, cancellationToken);
 
         await _auditLogger.LogTenantAsync(
             tenantId,

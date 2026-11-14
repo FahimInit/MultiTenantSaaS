@@ -20,5 +20,6 @@ public interface ITenantContext
 public interface ITenantContextSetter
 {
     void SetTenant(Guid tenantId, Guid membershipId, string roleCode, IEnumerable<string> permissions);
+    void SetSystemJobTenant(Guid tenantId);
     void Clear();
 }
