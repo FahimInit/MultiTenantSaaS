@@ -86,4 +86,23 @@ public sealed class TenantMembership : TenantEntity
         Status = MembershipStatus.Removed;
         UpdatedAtUtc = utcNow;
     }
+
+    public void Rejoin(Guid roleId, Guid? invitedByUserId, DateTimeOffset utcNow)
+    {
+        if (roleId == Guid.Empty)
+        {
+            throw new DomainException("RoleId cannot be empty.");
+        }
+
+        if (Status != MembershipStatus.Removed)
+        {
+            throw new DomainException("Only a removed membership can be rejoined.", "invalid_membership_state");
+        }
+
+        RoleId = roleId;
+        InvitedByUserId = invitedByUserId;
+        Status = MembershipStatus.Active;
+        JoinedAtUtc = utcNow;
+        UpdatedAtUtc = utcNow;
+    }
 }

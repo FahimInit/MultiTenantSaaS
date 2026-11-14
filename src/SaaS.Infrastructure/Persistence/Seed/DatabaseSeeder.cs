@@ -5,7 +5,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SaaS.Application.Common.Abstractions;
 using SaaS.Domain.AccessControl;
+using SaaS.Domain.Audit;
 using SaaS.Domain.Memberships;
+using SaaS.Domain.Subscriptions;
 using SaaS.Domain.Tenants;
 using SaaS.Infrastructure.Identity;
 
@@ -19,6 +21,9 @@ public static class DatabaseSeeder
         var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
         var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var plans = await EnsureSubscriptionPlansAsync(dbContext, cancellationToken);
+
         var enabled = config.GetValue<bool>("SeedDemoData:Enabled");
         if (!enabled || env.IsProduction())
         {
@@ -31,7 +36,6 @@ public static class DatabaseSeeder
             return;
         }
 
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
 
@@ -83,7 +87,7 @@ public static class DatabaseSeeder
 
         var consultant = await EnsureUserAsync("consultant@demo.local", "Jordan Cross");
 
-        // Tenant 1: Acme Corp
+        // Tenant 1: Acme Corp (Pro Active)
         var acme = Tenant.Create("Acme Corp", "acme-corp", alice.Id, now);
         acme.Activate(now);
         acme.CompleteOnboarding(now);
@@ -95,7 +99,7 @@ public static class DatabaseSeeder
         var acmeManager = acmeRoles.First(r => r.Code == SystemRoleCodes.Manager);
         var acmeMember = acmeRoles.First(r => r.Code == SystemRoleCodes.Member);
 
-        // Tenant 2: Globex Labs
+        // Tenant 2: Globex Labs (Free Active — 3/3 seats occupied to demonstrate quota & plan gates)
         var globex = Tenant.Create("Globex Labs", "globex-labs", dave.Id, now);
         globex.Activate(now);
         globex.CompleteOnboarding(now);
@@ -105,6 +109,54 @@ public static class DatabaseSeeder
         var globexOwner = globexRoles.First(r => r.Code == SystemRoleCodes.OrganizationOwner);
         var globexManager = globexRoles.First(r => r.Code == SystemRoleCodes.Manager);
         var globexMember = globexRoles.First(r => r.Code == SystemRoleCodes.Member);
+
+        var proPlan = plans["PRO"];
+        var freePlan = plans["FREE"];
+
+        var acmeSub = TenantSubscription.CreateActive(
+            acme.Id,
+            proPlan.Id,
+            BillingCycle.Monthly,
+            "mock_sub_acme_demo",
+            now);
+
+        var globexSub = TenantSubscription.CreateActive(
+            globex.Id,
+            freePlan.Id,
+            BillingCycle.Monthly,
+            externalProviderSubscriptionId: null,
+            utcNow: now,
+            autoRenew: false);
+
+        var acmeHistory = new SubscriptionHistory(
+            acme.Id,
+            acmeSub.Id,
+            null,
+            proPlan.Id,
+            SubscriptionEventType.Subscribed,
+            proPlan.MonthlyPriceCents,
+            "USD",
+            "mock_pay_acme_init",
+            alice.Id,
+            "Subscribed to Pro (Monthly) plan.",
+            now);
+
+        var globexHistory = new SubscriptionHistory(
+            globex.Id,
+            globexSub.Id,
+            null,
+            freePlan.Id,
+            SubscriptionEventType.Subscribed,
+            0,
+            "USD",
+            "FREE_TIER",
+            dave.Id,
+            "Provisioned Free tier.",
+            now);
+
+        var (periodStart, periodEnd) = TenantUsageSnapshot.GetMonthlyPeriod(now);
+        var acmeUsage = new TenantUsageSnapshot(acme.Id, periodStart, periodEnd, 4, 0, 128, now);
+        var globexUsage = new TenantUsageSnapshot(globex.Id, periodStart, periodEnd, 3, 0, 42, now);
 
         await dbContext.Tenants.AddRangeAsync([acme, globex], cancellationToken);
         await dbContext.TenantSettings.AddRangeAsync([acmeSettings, globexSettings], cancellationToken);
@@ -124,6 +176,99 @@ public static class DatabaseSeeder
             ],
             cancellationToken);
 
+        await dbContext.TenantSubscriptions.AddRangeAsync([acmeSub, globexSub], cancellationToken);
+        await dbContext.SubscriptionHistory.AddRangeAsync([acmeHistory, globexHistory], cancellationToken);
+        await dbContext.TenantUsageSnapshots.AddRangeAsync([acmeUsage, globexUsage], cancellationToken);
+
+        await dbContext.AuditLogs.AddRangeAsync(
+            [
+                AuditLog.CreateTenantEvent(
+                    acme.Id, alice.Id, alice.Email!, AuditCategory.Tenant, "TENANT_CREATED", "Tenant", acme.Id.ToString(),
+                    "Organization 'Acme Corp' initialized.", now.AddMinutes(-15)),
+                AuditLog.CreateTenantEvent(
+                    acme.Id, alice.Id, alice.Email!, AuditCategory.Subscription, "SUBSCRIPTION_PLAN_CHANGED", "TenantSubscription", acmeSub.Id.ToString(),
+                    "Activated Pro Monthly subscription plan.", now.AddMinutes(-10)),
+                AuditLog.CreateTenantEvent(
+                    globex.Id, dave.Id, dave.Email!, AuditCategory.Tenant, "TENANT_CREATED", "Tenant", globex.Id.ToString(),
+                    "Organization 'Globex Labs' initialized.", now.AddMinutes(-12))
+            ],
+            cancellationToken);
+
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public static async Task<Dictionary<string, SubscriptionPlan>> EnsureSubscriptionPlansAsync(
+        ApplicationDbContext dbContext,
+        CancellationToken cancellationToken = default)
+    {
+        var existing = await dbContext.SubscriptionPlans
+            .ToDictionaryAsync(p => p.Code, StringComparer.OrdinalIgnoreCase, cancellationToken);
+
+        var defaults = new[]
+        {
+            new SubscriptionPlan(
+                code: "FREE",
+                name: "Free",
+                description: "Starter tier for small teams getting started with multi-tenant workspace management.",
+                monthlyPriceCents: 0,
+                annualPriceCents: 0,
+                trialDays: 0,
+                maxMembers: 3,
+                maxCustomRoles: 0,
+                maxMonthlyApiCalls: 5_000,
+                auditRetentionDays: 30,
+                allowCustomRoles: false,
+                isActive: true,
+                isPublic: true,
+                sortOrder: 1),
+            new SubscriptionPlan(
+                code: "PRO",
+                name: "Pro",
+                description: "Growth plan unlocking custom RBAC roles, extended audit retention, and 25 workspace seats.",
+                monthlyPriceCents: 4900,
+                annualPriceCents: 49000,
+                trialDays: 14,
+                maxMembers: 25,
+                maxCustomRoles: 10,
+                maxMonthlyApiCalls: 100_000,
+                auditRetentionDays: 180,
+                allowCustomRoles: true,
+                isActive: true,
+                isPublic: true,
+                sortOrder: 2),
+            new SubscriptionPlan(
+                code: "ENTERPRISE",
+                name: "Enterprise",
+                description: "Scale-grade multi-tenant tier with unlimited seats, unlimited custom roles, and 1-year audit compliance.",
+                monthlyPriceCents: 19900,
+                annualPriceCents: 199000,
+                trialDays: 14,
+                maxMembers: null,
+                maxCustomRoles: null,
+                maxMonthlyApiCalls: 2_000_000,
+                auditRetentionDays: 365,
+                allowCustomRoles: true,
+                isActive: true,
+                isPublic: true,
+                sortOrder: 3)
+        };
+
+        var addedAny = false;
+        foreach (var plan in defaults)
+        {
+            if (!existing.ContainsKey(plan.Code))
+            {
+                await dbContext.SubscriptionPlans.AddAsync(plan, cancellationToken);
+                existing[plan.Code] = plan;
+                addedAny = true;
+            }
+        }
+
+        if (addedAny)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return existing;
     }
 }

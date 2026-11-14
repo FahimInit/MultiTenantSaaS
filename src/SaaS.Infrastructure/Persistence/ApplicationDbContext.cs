@@ -7,7 +7,9 @@ using SaaS.Domain.AccessControl;
 using SaaS.Domain.Audit;
 using SaaS.Domain.Common;
 using SaaS.Domain.Identity;
+using SaaS.Domain.Invitations;
 using SaaS.Domain.Memberships;
+using SaaS.Domain.Subscriptions;
 using SaaS.Domain.Tenants;
 using SaaS.Infrastructure.Identity;
 
@@ -36,6 +38,11 @@ public sealed class ApplicationDbContext
     public DbSet<TenantRole> TenantRoles => Set<TenantRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
+    public DbSet<TenantInvitation> TenantInvitations => Set<TenantInvitation>();
+    public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+    public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
+    public DbSet<SubscriptionHistory> SubscriptionHistory => Set<SubscriptionHistory>();
+    public DbSet<TenantUsageSnapshot> TenantUsageSnapshots => Set<TenantUsageSnapshot>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)

@@ -25,6 +25,7 @@ public sealed class CreateTenantHandler : ICommandHandler<CreateTenantCommand, T
     private readonly ICurrentUser _currentUser;
     private readonly IIdentityService _identityService;
     private readonly ITenantStore _tenantStore;
+    private readonly ISubscriptionProvisioner _subscriptionProvisioner;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IAuditLogger _auditLogger;
@@ -34,6 +35,7 @@ public sealed class CreateTenantHandler : ICommandHandler<CreateTenantCommand, T
         ICurrentUser currentUser,
         IIdentityService identityService,
         ITenantStore tenantStore,
+        ISubscriptionProvisioner subscriptionProvisioner,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
         IAuditLogger auditLogger)
@@ -42,6 +44,7 @@ public sealed class CreateTenantHandler : ICommandHandler<CreateTenantCommand, T
         _currentUser = currentUser;
         _identityService = identityService;
         _tenantStore = tenantStore;
+        _subscriptionProvisioner = subscriptionProvisioner;
         _unitOfWork = unitOfWork;
         _dateTimeProvider = dateTimeProvider;
         _auditLogger = auditLogger;
@@ -85,6 +88,7 @@ public sealed class CreateTenantHandler : ICommandHandler<CreateTenantCommand, T
             await _tenantStore.AddTenantSettingsAsync(settings, ct);
             await _tenantStore.AddTenantRolesAsync(roles, ct);
             await _tenantStore.AddMembershipAsync(ownerMembership, ct);
+            await _subscriptionProvisioner.ProvisionInitialSubscriptionAsync(tenant.Id, user.Id, now, ct);
             await _unitOfWork.SaveChangesAsync(ct);
         }, cancellationToken);
 

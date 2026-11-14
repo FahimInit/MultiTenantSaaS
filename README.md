@@ -2,7 +2,7 @@
 
 A production-oriented B2B **Multi-Tenant SaaS Management Platform** engineered with **Clean Architecture**, **Modular Monolith** boundaries, **ASP.NET Core**, **Entity Framework Core**, **PostgreSQL**, and **Next.js (TypeScript)**.
 
-> **Current Milestone:** Phase 2 — Identity & Multi-Tenant Foundation (Completed) | Next: Phase 3 — Business Modules
+> **Current Milestone:** Phase 3 — Core Business Modules (Completed) | Next: Phase 4 — Advanced Backend Capabilities
 
 ---
 

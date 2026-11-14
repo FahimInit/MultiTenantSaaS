@@ -1,5 +1,38 @@
 # Project Progress Report
 
+## Phase 3 — Core Business Modules
+**Status:** Completed  
+**Date:** 2026-11-15
+
+### What Was Implemented
+- **Module C (Members & Invitations):**
+  - `TenantInvitation` domain entity + `TenantInvitationConfiguration` (`tenant_invitations` table with composite FK `(tenant_id, role_id)` to `tenant_roles(tenant_id, id)` and partial unique index `status = 'Pending'`).
+  - Full endpoints on `/api/v1/members` and `/api/v1/invitations`: invite, list (paged/sorted/filtered), resend, revoke, accept (strict email match verification + re-join support for removed memberships), change member role, suspend/reactivate, remove member, and strict protection preventing demotion/removal of the last active `ORG_OWNER`.
+  - Respects `TenantSettings.EnforceEmailDomain` / `AllowedEmailDomains` when issuing invitations.
+- **Module D (Roles & Permissions):**
+  - `/api/v1/permissions` catalog endpoint and `/api/v1/roles` CRUD endpoints.
+  - `PermissionHierarchyGuard` prevents non-owner admins from creating/assigning roles with permissions they do not hold or assigning `ORG_OWNER`.
+  - Blocks deletion of system roles or roles actively referenced by members/pending invitations.
+- **Module E (Subscriptions, Usage Quotas & Billing Abstraction):**
+  - `SubscriptionPlan`, `TenantSubscription`, `SubscriptionHistory`, and `TenantUsageSnapshot` entities + `AddBusinessModules` PostgreSQL migration.
+  - `SubscriptionQuotaService` (`ISubscriptionQuotaService` + `ISubscriptionProvisioner`): automatically provisions a 14-day `PRO` trial on tenant creation, enforces `MaxMembers`, `AllowCustomRoles`, `MaxCustomRoles`, and blocks workspace writes on expired trials/subscriptions while keeping billing/upgrade endpoints operational.
+  - `IPaymentProvider` abstraction + `MockPaymentProvider` implementation; `ChangeSubscriptionPlanHandler` checks member & custom role counts before permitting downgrades.
+- **Module F, G & Platform Admin:**
+  - `AuditLogsController` (`GET /api/v1/audit-logs`), `DashboardController` (`GET /api/v1/dashboard`), and `PlatformController` (`/api/v1/platform/*` protected by `[PlatformAdminOnly]`) for platform KPIs, MRR estimation, tenant suspend/reactivate, plan catalog management, and cross-tenant audit investigation.
+
+### Tests Executed (Post Final Code Edit)
+- `dotnet build MultiTenantSaaS.sln --no-restore -p:UseSharedCompilation=false -m:1`: **0 Warnings, 0 Errors**.
+- `dotnet test MultiTenantSaaS.sln --no-build --verbosity normal`:
+  - `SaaS.Domain.UnitTests`: **26/26 Passed**
+  - `SaaS.Application.UnitTests`: **11/11 Passed**
+  - `SaaS.API.IntegrationTests`: **25/25 Passed** (live PostgreSQL 17 Testcontainers + NetArchTest boundaries)
+  - **Total:** **62/62 Passed**, **0 Failed**, **0 Skipped**.
+
+### Next Milestone
+- **Phase 4 — Advanced Backend Capabilities:** Redis permission/membership caching (`ICacheService`) with synchronous invalidation on role/member mutations, distributed/Redis-backed or enhanced rate limiting + monthly API call usage metering middleware, background hosted services (`IHostedService` for invitation expiry sweep, trial expiry transition, and audit log retention cleanup), and SMTP email adapter (`MailHog`/SMTP + dev outbox).
+
+---
+
 ## Phase 2 — Identity and Multi-Tenant Foundation
 **Status:** Completed  
 **Date:** 2026-11-15
