@@ -1,9 +1,11 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using SaaS.API.Extensions;
 using SaaS.API.Middleware;
 using SaaS.API.Options;
 using SaaS.Application;
 using SaaS.Infrastructure;
+using SaaS.Infrastructure.Persistence.Seed;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,20 +43,32 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddProblemDetails();
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration)
+    .AddPlatformAuthenticationAndAuthorization()
     .AddPlatformApiVersioning()
     .AddPlatformSwagger()
     .AddPlatformRateLimiting();
 
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("SeedDemoData:RunOnStartup"))
+{
+    await DatabaseSeeder.SeedDemoDataAsync(app.Services);
+}
+
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseStatusCodePages();
 app.UseSerilogRequestLogging();
 
 if (app.Environment.IsDevelopment())
@@ -70,6 +84,7 @@ app.UseCors("FrontendCorsPolicy");
 app.UseRateLimiter();
 
 app.UseAuthentication();
+app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers().RequireRateLimiting(RateLimitingExtensions.ApiPolicyName);

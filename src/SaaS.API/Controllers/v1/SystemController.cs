@@ -1,10 +1,12 @@
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SaaS.Application.Common.Abstractions;
 
 namespace SaaS.API.Controllers.v1;
 
 [ApiController]
+[AllowAnonymous]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/system")]
 public sealed class SystemController : ControllerBase
