@@ -60,6 +60,22 @@ services:
     networks:
       - saas-network
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080/api/v1}
+        NEXT_PUBLIC_SHOW_DEMO_HINTS: ${NEXT_PUBLIC_SHOW_DEMO_HINTS:-true}
+    container_name: saas-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    networks:
+      - saas-network
+
 volumes:
   saas_pgdata:
 

@@ -42,4 +42,18 @@
    ```
    - Swagger UI (Development): `http://localhost:5025/swagger` (or `:8080` in Docker)
    - Liveness: `/health/live`
-   - Readiness (PostgreSQL): `/health/ready`
+   - Readiness (PostgreSQL + Distributed Cache): `/health/ready`
+
+7. **Run the Next.js Frontend (`frontend/`):**
+   ```bash
+   cd frontend
+   cp .env.example .env.local
+   npm install
+   npm run dev
+   ```
+   - Frontend URL: `http://localhost:3000` (set `NEXT_PUBLIC_API_BASE_URL=http://localhost:5025/api/v1` when running the API natively instead of Docker port `8080`).
+
+8. **Full-Stack Docker Compose (PostgreSQL + Redis + API + Frontend):**
+   ```bash
+   docker compose up --build
+   ```

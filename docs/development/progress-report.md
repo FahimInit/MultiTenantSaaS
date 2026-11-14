@@ -1,5 +1,26 @@
 # Project Progress Report
 
+## Phase 5 — Next.js TypeScript Frontend Dashboard
+**Status:** Completed  
+**Date:** 2026-11-15
+
+### What Was Implemented
+- **Next.js Application (`frontend/`):** App Router setup with strict TypeScript (`tsc --noEmit`), ESLint (`next lint`), Tailwind CSS design tokens with persisted light/dark theme toggle, React Hook Form + Zod validation, and TanStack Query v5.
+- **Auth & Tenant Client (`src/lib/api-client.ts`, `src/providers/AuthTenantProvider.tsx`):**
+  - Single-flight lock around `POST /api/v1/auth/refresh` so concurrent `401` responses share one token rotation instead of triggering refresh-family reuse revocation.
+  - Strict `X-Tenant-Id` attachment restricted to tenant-scoped endpoints, with organization switching clearing previous `["tenant"]` cached queries.
+  - Typed RFC 9457 `ProblemDetails` extraction including validation errors and `429 Retry-After` feedback.
+- **All Administration & Onboarding Pages:** `/login` (with forgot/reset password and dev demo email quick-fill), `/register`, `/verify-email`, `/onboarding` (create org, complete onboarding, accept invitation), `/dashboard` (live KPIs, quota utilization, recent audit events), `/members` (directory filters, invitations tab, role/status/remove actions), `/roles` (capability matrix and custom role CRUD), `/subscription` (plans catalog, `MockPaymentProvider` checkout modal, cancellation, billing history), `/settings` (organization identity, workspace security policies, active sessions), `/audit-logs` (filtered query viewer and JSON metadata inspector), and `/platform` (`PlatformAdministrator` console).
+- **Container & CI Integration:** Added `frontend/Dockerfile` (`NEXT_OUTPUT_STANDALONE=true`), added `frontend` service on `:3000` in `docker-compose.yml`, and added a `frontend` typecheck/lint/build job in `.github/workflows/ci.yml`.
+
+### Tests & Checks Executed
+- `npm run typecheck` (`tsc --noEmit`): **0 Errors**
+- `npm run lint` (`next lint`): **0 Warnings, 0 Errors**
+- `npm run build` (`next build`): **Passed** (`15/15` static routes prerendered, `0` errors)
+- `docker compose --env-file .env.example config --quiet`: **Passed (exit code 0)**
+
+---
+
 ## Phase 4 — Advanced Backend Capabilities
 **Status:** Completed  
 **Date:** 2026-11-15

@@ -58,3 +58,16 @@ tests/
    ```
    OpenAPI / Swagger UI (Development): `http://localhost:8080/swagger`  
    Health Checks: `/health/live`, `/health/ready`
+
+5. **Run the Next.js Frontend (`frontend/`):**
+   ```bash
+   cd frontend
+   cp .env.example .env.local
+   npm install
+   npm run dev
+   ```
+   - Open `http://localhost:3000` (configured by default to target `http://localhost:8080/api/v1`; set `NEXT_PUBLIC_API_BASE_URL=http://localhost:5025/api/v1` when running the ASP.NET Core API via `dotnet run`).
+   - Full-stack container startup (`postgres` + `redis` + `api` + `frontend`):
+     ```bash
+     docker compose up --build
+     ```
