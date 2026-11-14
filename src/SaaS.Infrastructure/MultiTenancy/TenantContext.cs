@@ -14,7 +14,7 @@ public sealed class TenantContext : ITenantContext, ITenantContextSetter
     public Guid? MembershipId { get; private set; }
     public string? RoleCode { get; private set; }
     public IReadOnlySet<string> Permissions => _permissions;
-    public bool IsResolved => TenantId.HasValue && MembershipId.HasValue;
+    public bool IsResolved => TenantId.HasValue && (MembershipId.HasValue || string.Equals(RoleCode, "SYSTEM_JOB", StringComparison.Ordinal));
 
     public bool HasPermission(string permission)
     {
@@ -50,6 +50,19 @@ public sealed class TenantContext : ITenantContext, ITenantContextSetter
                 _permissions.Add(permission);
             }
         }
+    }
+
+    public void SetSystemJobTenant(Guid tenantId)
+    {
+        if (tenantId == Guid.Empty)
+        {
+            throw new ArgumentException("TenantId cannot be empty.", nameof(tenantId));
+        }
+
+        TenantId = tenantId;
+        MembershipId = null;
+        RoleCode = "SYSTEM_JOB";
+        _permissions.Clear();
     }
 
     public void Clear()

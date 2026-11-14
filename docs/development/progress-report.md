@@ -1,5 +1,37 @@
 # Project Progress Report
 
+## Phase 4 — Advanced Backend Capabilities
+**Status:** Completed  
+**Date:** 2026-11-15
+
+### What Was Implemented
+- **Distributed Caching & Immediate Invalidation:**
+  - `ICacheService` & `ITenantPermissionCacheInvalidator` abstractions in `SaaS.Application` backed by `DistributedCacheService` (`StackExchangeRedis` when `Redis:Enabled=true`, `DistributedMemoryCache` otherwise) with resilient database fallback on cache failures and `DistributedCacheHealthCheck` integrated into `/health/ready`.
+  - `CachedTenantMembershipResolver` decorating `TenantMembershipResolver` using per-tenant authorization epochs for O(1) tenant-wide invalidation on role/status updates alongside single-user eviction on membership role changes.
+  - Synchronous invalidation hooks in member/role/platform handlers plus `TenantCacheInvalidationInterceptor` (`SaveChangesInterceptor`) to guarantee cache invalidation immediately after successful PostgreSQL commits.
+- **Usage Metering & Background Maintenance:**
+  - `ITenantUsageTracker` (`BufferedTenantUsageTracker`) aggregating per-tenant API calls lock-free in memory and flushing atomically to `tenant_usage_snapshots` (`ON CONFLICT ... DO UPDATE`).
+  - `IPlatformMaintenanceRunner` (`PlatformMaintenanceRunner` + `PlatformMaintenanceHostedService`) using dedicated `ITenantContextSetter.SetSystemJobTenant(tenantId)` scopes to expire overdue invitations (`INVITATION_EXPIRED` audit events) and overdue trials (`SubscriptionEventType.Expired` + `TRIAL_EXPIRED` audit events), flush buffered usage, and purge refresh tokens expired/revoked for over 30 days.
+- **Rate Limiting, SMTP Email & Docker Infrastructure:**
+  - Refined `RateLimitingExtensions` (`RateLimitingOptions`) and endpoint convention wiring in `Program.cs` so explicit `[EnableRateLimiting(AuthPolicyName)]` auth policies (including `/verify-email`) are never overwritten by the default per-tenant API limiter, and `429` responses consistently emit `application/problem+json` + `Retry-After`.
+  - Added `SmtpEmailService` (`EmailOptions`) toggleable via `Email:Provider` alongside `DevelopmentEmailService`; added `redis:7-alpine` service + environment settings to `docker-compose.yml`, `.env.example`, and `appsettings.json`.
+- **Root-Cause Fixes Caught During Integration Verification:**
+  - Updated `MembershipStore.FindMemberDetailAsync` and `SubscriptionStore.GetTenantSubscriptionWithPlan*Async` to load mutable entities directly without mixed `AsNoTracking()`/constructor projections so EF Core always tracks and persists changes.
+
+### Tests Executed (Post Final Code Edit)
+- `dotnet build MultiTenantSaaS.sln --no-restore -p:UseSharedCompilation=false -m:1`: **0 Warnings, 0 Errors**.
+- `dotnet test MultiTenantSaaS.sln --no-build --verbosity normal`:
+  - `SaaS.Domain.UnitTests`: **26/26 Passed**
+  - `SaaS.Application.UnitTests`: **14/14 Passed** (including handler cache-invalidation verification tests)
+  - `SaaS.API.IntegrationTests`: **29/29 Passed** (live PostgreSQL 17 + Redis 7 Testcontainers testing Redis epoch rotation, DB fallback, maintenance sweeps, per-tenant & auth rate limits, and NetArchTest boundaries)
+  - **Total:** **69/69 Passed**, **0 Failed**, **0 Skipped**.
+- `docker compose --env-file .env.example config --quiet`: **Passed** (exit code 0).
+
+### Next Milestone
+- **Phase 5 — Frontend Administration Dashboard (`frontend/`):** Initialize Next.js (TypeScript, Tailwind CSS, shadcn/ui, React Hook Form + Zod, TanStack Query) with single-flight refresh token locking, organization workspace switcher (`X-Tenant-Id`), light/dark theme toggle, and all 10 application pages consuming live backend APIs.
+
+---
+
 ## Phase 3 — Core Business Modules
 **Status:** Completed  
 **Date:** 2026-11-15

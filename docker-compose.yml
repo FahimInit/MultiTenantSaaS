@@ -19,6 +19,21 @@ services:
     networks:
       - saas-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: saas-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - saas-network
+
   api:
     build:
       context: .
@@ -28,10 +43,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_HTTP_PORTS: 8080
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-saas_platform};Username=${POSTGRES_USER:-saas_app};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      Redis__Enabled: ${Redis__Enabled:-true}
+      Redis__ConnectionString: redis:6379
       Jwt__Issuer: ${Jwt__Issuer:-https://api.saas.local}
       Jwt__Audience: ${Jwt__Audience:-https://app.saas.local}
       Jwt__SigningKey: ${Jwt__SigningKey:?Set Jwt__SigningKey in .env}

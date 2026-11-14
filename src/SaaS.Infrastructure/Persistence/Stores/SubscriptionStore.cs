@@ -78,24 +78,37 @@ public sealed class SubscriptionStore : ISubscriptionStore
         Guid tenantId,
         CancellationToken cancellationToken = default)
     {
-        return await (
-            from sub in _dbContext.TenantSubscriptions
-            join plan in _dbContext.SubscriptionPlans on sub.PlanId equals plan.Id
-            where sub.TenantId == tenantId
-            select new TenantSubscriptionWithPlan(sub, plan))
-            .FirstOrDefaultAsync(cancellationToken);
+        var subscription = await _dbContext.TenantSubscriptions
+            .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken);
+
+        return await AttachPlanAsync(subscription, cancellationToken);
     }
 
     public async Task<TenantSubscriptionWithPlan?> GetTenantSubscriptionWithPlanUnfilteredAsync(
         Guid tenantId,
         CancellationToken cancellationToken = default)
     {
-        return await (
-            from sub in _dbContext.TenantSubscriptions.IgnoreQueryFilters()
-            join plan in _dbContext.SubscriptionPlans on sub.PlanId equals plan.Id
-            where sub.TenantId == tenantId
-            select new TenantSubscriptionWithPlan(sub, plan))
-            .FirstOrDefaultAsync(cancellationToken);
+        var subscription = await _dbContext.TenantSubscriptions
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken);
+
+        return await AttachPlanAsync(subscription, cancellationToken);
+    }
+
+    private async Task<TenantSubscriptionWithPlan?> AttachPlanAsync(
+        TenantSubscription? subscription,
+        CancellationToken cancellationToken)
+    {
+        if (subscription is null)
+        {
+            return null;
+        }
+
+        var plan = await _dbContext.SubscriptionPlans
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == subscription.PlanId, cancellationToken);
+
+        return plan is null ? null : new TenantSubscriptionWithPlan(subscription, plan);
     }
 
     public async Task AddTenantSubscriptionAsync(

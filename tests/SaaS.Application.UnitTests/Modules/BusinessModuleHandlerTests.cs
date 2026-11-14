@@ -93,6 +93,7 @@ public sealed class BusinessModuleHandlerTests
             membershipStore,
             roleStore,
             Substitute.For<ISubscriptionQuotaService>(),
+            Substitute.For<ITenantPermissionCacheInvalidator>(),
             Substitute.For<IUnitOfWork>(),
             Substitute.For<IDateTimeProvider>(),
             Substitute.For<IAuditLogger>());

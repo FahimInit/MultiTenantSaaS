@@ -2,7 +2,7 @@
 
 A production-oriented B2B **Multi-Tenant SaaS Management Platform** engineered with **Clean Architecture**, **Modular Monolith** boundaries, **ASP.NET Core**, **Entity Framework Core**, **PostgreSQL**, and **Next.js (TypeScript)**.
 
-> **Current Milestone:** Phase 3 — Core Business Modules (Completed) | Next: Phase 4 — Advanced Backend Capabilities
+> **Current Milestone:** Phase 4 — Advanced Backend Capabilities (Completed) | Next: Phase 5 — Frontend Administration Dashboard
 
 ---
 
@@ -43,9 +43,9 @@ tests/
    ```bash
    cp .env.example .env
    ```
-2. Start PostgreSQL (and API container if desired):
+2. Start PostgreSQL and Redis (and API container if desired):
    ```bash
-   docker compose up -d postgres
+   docker compose up -d postgres redis
    ```
 3. Build and test the backend:
    ```bash

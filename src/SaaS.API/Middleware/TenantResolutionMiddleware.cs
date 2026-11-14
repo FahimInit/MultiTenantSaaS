@@ -28,7 +28,9 @@ public sealed class TenantResolutionMiddleware
         ICurrentUser currentUser,
         ITenantContextSetter tenantContextSetter,
         ITenantMembershipResolver membershipResolver,
-        IAuditLogger auditLogger)
+        IAuditLogger auditLogger,
+        ITenantUsageTracker usageTracker,
+        IDateTimeProvider dateTimeProvider)
     {
         tenantContextSetter.Clear();
 
@@ -101,6 +103,8 @@ public sealed class TenantResolutionMiddleware
             resolved.MembershipId,
             resolved.RoleCode,
             resolved.Permissions);
+
+        usageTracker.RecordApiCall(resolved.TenantId, dateTimeProvider.UtcNow);
 
         using (LogContext.PushProperty("TenantId", resolved.TenantId))
         using (LogContext.PushProperty("UserId", userId))
