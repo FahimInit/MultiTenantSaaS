@@ -475,6 +475,100 @@ namespace SaaS.Infrastructure.Persistence.Migrations
                     b.ToTable("user_sessions", (string)null);
                 });
 
+            modelBuilder.Entity("SaaS.Domain.Invitations.TenantInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AcceptedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at_utc");
+
+                    b.Property<Guid?>("AcceptedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("accepted_by_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at_utc");
+
+                    b.Property<Guid>("InvitedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invited_by_user_id");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("normalized_email");
+
+                    b.Property<DateTimeOffset?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at_utc");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("role_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("token_hash");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenant_invitations");
+
+                    b.HasIndex("AcceptedByUserId")
+                        .HasDatabaseName("ix_tenant_invitations_accepted_by_user_id");
+
+                    b.HasIndex("InvitedByUserId")
+                        .HasDatabaseName("ix_tenant_invitations_invited_by_user_id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_tenant_invitations_token_hash");
+
+                    b.HasIndex("Status", "ExpiresAtUtc")
+                        .HasDatabaseName("ix_tenant_invitations_status_expires_at_utc");
+
+                    b.HasIndex("TenantId", "CreatedAtUtc")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("ix_tenant_invitations_tenant_id_created_at_utc");
+
+                    b.HasIndex("TenantId", "NormalizedEmail")
+                        .IsUnique()
+                        .HasDatabaseName("ix_tenant_invitations_tenant_id_normalized_email")
+                        .HasFilter("status = 'Pending'");
+
+                    b.HasIndex("TenantId", "RoleId")
+                        .HasDatabaseName("ix_tenant_invitations_tenant_id_role_id");
+
+                    b.ToTable("tenant_invitations", (string)null);
+                });
+
             modelBuilder.Entity("SaaS.Domain.Memberships.TenantMembership", b =>
                 {
                     b.Property<Guid>("Id")
@@ -535,6 +629,288 @@ namespace SaaS.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_tenant_memberships_user_id_status");
 
                     b.ToTable("tenant_memberships", (string)null);
+                });
+
+            modelBuilder.Entity("SaaS.Domain.Subscriptions.SubscriptionHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<long>("AmountCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("amount_cents");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("event_type");
+
+                    b.Property<Guid?>("FromPlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("from_plan_id");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("notes");
+
+                    b.Property<DateTimeOffset>("OccurredAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at_utc");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("payment_reference");
+
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subscription_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("ToPlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("to_plan_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_subscription_history");
+
+                    b.HasIndex("FromPlanId")
+                        .HasDatabaseName("ix_subscription_history_from_plan_id");
+
+                    b.HasIndex("SubscriptionId")
+                        .HasDatabaseName("ix_subscription_history_subscription_id");
+
+                    b.HasIndex("ToPlanId")
+                        .HasDatabaseName("ix_subscription_history_to_plan_id");
+
+                    b.HasIndex("TenantId", "OccurredAtUtc")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("ix_subscription_history_tenant_id_occurred_at_utc");
+
+                    b.ToTable("subscription_history", (string)null);
+                });
+
+            modelBuilder.Entity("SaaS.Domain.Subscriptions.SubscriptionPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AllowCustomRoles")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allow_custom_roles");
+
+                    b.Property<long>("AnnualPriceCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("annual_price_cents");
+
+                    b.Property<int>("AuditRetentionDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("audit_retention_days");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_public");
+
+                    b.Property<int?>("MaxCustomRoles")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_custom_roles");
+
+                    b.Property<int?>("MaxMembers")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_members");
+
+                    b.Property<int?>("MaxMonthlyApiCalls")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_monthly_api_calls");
+
+                    b.Property<long>("MonthlyPriceCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("monthly_price_cents");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<int>("TrialDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("trial_days");
+
+                    b.HasKey("Id")
+                        .HasName("pk_subscription_plans");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_subscription_plans_code");
+
+                    b.HasIndex("IsPublic", "IsActive", "SortOrder")
+                        .HasDatabaseName("ix_subscription_plans_is_public_is_active_sort_order");
+
+                    b.ToTable("subscription_plans", (string)null);
+                });
+
+            modelBuilder.Entity("SaaS.Domain.Subscriptions.TenantSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AutoRenew")
+                        .HasColumnType("boolean")
+                        .HasColumnName("auto_renew");
+
+                    b.Property<string>("BillingCycle")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("billing_cycle");
+
+                    b.Property<DateTimeOffset?>("CanceledAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("canceled_at_utc");
+
+                    b.Property<DateTimeOffset>("CurrentPeriodEndUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("current_period_end_utc");
+
+                    b.Property<DateTimeOffset>("CurrentPeriodStartUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("current_period_start_utc");
+
+                    b.Property<string>("ExternalProviderSubscriptionId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("external_provider_subscription_id");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("plan_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset?>("TrialEndsAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trial_ends_at_utc");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenant_subscriptions");
+
+                    b.HasIndex("PlanId")
+                        .HasDatabaseName("ix_tenant_subscriptions_plan_id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_tenant_subscriptions_tenant_id");
+
+                    b.HasIndex("Status", "TrialEndsAtUtc")
+                        .HasDatabaseName("ix_tenant_subscriptions_status_trial_ends_at_utc");
+
+                    b.ToTable("tenant_subscriptions", (string)null);
+                });
+
+            modelBuilder.Entity("SaaS.Domain.Subscriptions.TenantUsageSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ActiveMembersCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("active_members_count");
+
+                    b.Property<long>("ApiCallsCount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("api_calls_count");
+
+                    b.Property<int>("CustomRolesCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("custom_roles_count");
+
+                    b.Property<DateTimeOffset>("PeriodEndUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_end_utc");
+
+                    b.Property<DateTimeOffset>("PeriodStartUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_start_utc");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id")
+                        .HasName("pk_tenant_usage_snapshots");
+
+                    b.HasIndex("TenantId", "PeriodStartUtc")
+                        .IsUnique()
+                        .HasDatabaseName("ix_tenant_usage_snapshots_tenant_id_period_start_utc");
+
+                    b.ToTable("tenant_usage_snapshots", (string)null);
                 });
 
             modelBuilder.Entity("SaaS.Domain.Tenants.Tenant", b =>
@@ -881,6 +1257,37 @@ namespace SaaS.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_user_sessions_users_user_id");
                 });
 
+            modelBuilder.Entity("SaaS.Domain.Invitations.TenantInvitation", b =>
+                {
+                    b.HasOne("SaaS.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("AcceptedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_tenant_invitations_users_accepted_by_user_id");
+
+                    b.HasOne("SaaS.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("InvitedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_invitations_users_invited_by_user_id");
+
+                    b.HasOne("SaaS.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_invitations_tenants_tenant_id");
+
+                    b.HasOne("SaaS.Domain.AccessControl.TenantRole", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId", "RoleId")
+                        .HasPrincipalKey("TenantId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_invitations_tenant_roles_tenant_id_role_id");
+                });
+
             modelBuilder.Entity("SaaS.Domain.Memberships.TenantMembership", b =>
                 {
                     b.HasOne("SaaS.Infrastructure.Identity.ApplicationUser", null)
@@ -910,6 +1317,63 @@ namespace SaaS.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_tenant_memberships_tenant_roles_tenant_id_role_id");
+                });
+
+            modelBuilder.Entity("SaaS.Domain.Subscriptions.SubscriptionHistory", b =>
+                {
+                    b.HasOne("SaaS.Domain.Subscriptions.SubscriptionPlan", null)
+                        .WithMany()
+                        .HasForeignKey("FromPlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_subscription_history_subscription_plans_from_plan_id");
+
+                    b.HasOne("SaaS.Domain.Subscriptions.TenantSubscription", null)
+                        .WithMany()
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_subscription_history_tenant_subscriptions_subscription_id");
+
+                    b.HasOne("SaaS.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_subscription_history_tenants_tenant_id");
+
+                    b.HasOne("SaaS.Domain.Subscriptions.SubscriptionPlan", null)
+                        .WithMany()
+                        .HasForeignKey("ToPlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_subscription_history_subscription_plans_to_plan_id");
+                });
+
+            modelBuilder.Entity("SaaS.Domain.Subscriptions.TenantSubscription", b =>
+                {
+                    b.HasOne("SaaS.Domain.Subscriptions.SubscriptionPlan", null)
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_subscriptions_subscription_plans_plan_id");
+
+                    b.HasOne("SaaS.Domain.Tenants.Tenant", null)
+                        .WithOne()
+                        .HasForeignKey("SaaS.Domain.Subscriptions.TenantSubscription", "TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_subscriptions_tenants_tenant_id");
+                });
+
+            modelBuilder.Entity("SaaS.Domain.Subscriptions.TenantUsageSnapshot", b =>
+                {
+                    b.HasOne("SaaS.Domain.Tenants.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_usage_snapshots_tenants_tenant_id");
                 });
 
             modelBuilder.Entity("SaaS.Domain.Tenants.Tenant", b =>

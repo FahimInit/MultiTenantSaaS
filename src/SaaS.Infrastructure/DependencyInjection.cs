@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SaaS.Application.Common.Abstractions;
 using SaaS.Infrastructure.Audit;
+using SaaS.Infrastructure.Billing;
 using SaaS.Infrastructure.Email;
 using SaaS.Infrastructure.Identity;
 using SaaS.Infrastructure.MultiTenancy;
@@ -56,8 +57,17 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddSingleton<IOpaqueTokenService, OpaqueTokenService>();
         services.AddScoped<ISessionStore, SessionStore>();
         services.AddScoped<ITenantStore, TenantStore>();
+        services.AddScoped<IMembershipStore, MembershipStore>();
+        services.AddScoped<IInvitationStore, InvitationStore>();
+        services.AddScoped<IRoleStore, RoleStore>();
+        services.AddScoped<ISubscriptionStore, SubscriptionStore>();
+        services.AddScoped<IAuditQueryStore, AuditQueryStore>();
+        services.AddScoped<IDashboardStore, DashboardStore>();
+        services.AddScoped<IPlatformAdminStore, PlatformAdminStore>();
+        services.AddScoped<IPaymentProvider, MockPaymentProvider>();
         services.AddScoped<ITenantMembershipResolver, TenantMembershipResolver>();
         services.AddScoped<IAuditLogger, AuditLogger>();
 

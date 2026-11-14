@@ -108,6 +108,7 @@ public sealed class IdentityAndTenantHandlerTests
             currentUser,
             identityService,
             tenantStore,
+            Substitute.For<ISubscriptionProvisioner>(),
             Substitute.For<IUnitOfWork>(),
             dateTimeProvider,
             Substitute.For<IAuditLogger>());

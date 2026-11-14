@@ -70,6 +70,7 @@ public sealed class UpdateTenantSettingsHandler : ICommandHandler<UpdateTenantSe
     private readonly ITenantContext _tenantContext;
     private readonly ICurrentUser _currentUser;
     private readonly ITenantStore _tenantStore;
+    private readonly ISubscriptionQuotaService _quotaService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IAuditLogger _auditLogger;
@@ -79,6 +80,7 @@ public sealed class UpdateTenantSettingsHandler : ICommandHandler<UpdateTenantSe
         ITenantContext tenantContext,
         ICurrentUser currentUser,
         ITenantStore tenantStore,
+        ISubscriptionQuotaService quotaService,
         IUnitOfWork unitOfWork,
         IDateTimeProvider dateTimeProvider,
         IAuditLogger auditLogger)
@@ -87,6 +89,7 @@ public sealed class UpdateTenantSettingsHandler : ICommandHandler<UpdateTenantSe
         _tenantContext = tenantContext;
         _currentUser = currentUser;
         _tenantStore = tenantStore;
+        _quotaService = quotaService;
         _unitOfWork = unitOfWork;
         _dateTimeProvider = dateTimeProvider;
         _auditLogger = auditLogger;
@@ -100,6 +103,8 @@ public sealed class UpdateTenantSettingsHandler : ICommandHandler<UpdateTenantSe
 
         var tenantId = _tenantContext.TenantId
             ?? throw new ForbiddenAppException("Tenant context is not resolved.", "tenant_context_missing");
+
+        await _quotaService.EnsureWorkspaceWriteAllowedAsync(tenantId, cancellationToken);
 
         var settings = await _tenantStore.GetCurrentTenantSettingsAsync(tenantId, cancellationToken)
             ?? throw new NotFoundAppException("Organization settings were not found.", "tenant_settings_not_found");
