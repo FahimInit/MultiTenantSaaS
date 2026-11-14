@@ -3,7 +3,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SaaS.Application.Common.Abstractions;
+using SaaS.Domain.AccessControl;
+using SaaS.Domain.Audit;
 using SaaS.Domain.Common;
+using SaaS.Domain.Identity;
+using SaaS.Domain.Memberships;
+using SaaS.Domain.Tenants;
 using SaaS.Infrastructure.Identity;
 
 namespace SaaS.Infrastructure.Persistence;
@@ -24,6 +29,15 @@ public sealed class ApplicationDbContext
         _tenantContext = tenantContext;
     }
 
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<TenantSettings> TenantSettings => Set<TenantSettings>();
+    public DbSet<TenantRole> TenantRoles => Set<TenantRole>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -31,6 +45,13 @@ public sealed class ApplicationDbContext
         ConfigureIdentityTableNames(builder);
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
         ApplyGlobalTenantFilters(builder);
+
+        // Fail-closed filter on AuditLog for tenant-scoped queries; platform audit queries explicitly call IgnoreQueryFilters().
+        builder.Entity<AuditLog>()
+            .HasQueryFilter(a =>
+                _tenantContext.TenantId != null &&
+                a.Scope == AuditScope.Tenant &&
+                a.TenantId == _tenantContext.TenantId);
     }
 
     private static void ConfigureIdentityTableNames(ModelBuilder builder)

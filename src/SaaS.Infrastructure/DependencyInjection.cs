@@ -3,10 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SaaS.Application.Common.Abstractions;
+using SaaS.Infrastructure.Audit;
+using SaaS.Infrastructure.Email;
 using SaaS.Infrastructure.Identity;
 using SaaS.Infrastructure.MultiTenancy;
 using SaaS.Infrastructure.Persistence;
 using SaaS.Infrastructure.Persistence.Interceptors;
+using SaaS.Infrastructure.Persistence.Stores;
 using SaaS.Infrastructure.Time;
 
 namespace SaaS.Infrastructure;
@@ -21,10 +24,13 @@ public static class DependencyInjection
         services.AddDataProtection();
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
+        services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+
         services.AddScoped<TenantContext>();
         services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
         services.AddScoped<ITenantContextSetter>(sp => sp.GetRequiredService<TenantContext>());
         services.AddScoped<ICurrentUser, CurrentUser>();
+        services.AddScoped<IRequestContextInfo, HttpRequestContextInfo>();
 
         services.AddScoped<TenantWriteGuardInterceptor>();
 
@@ -48,6 +54,16 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+        services.AddScoped<IIdentityService, IdentityService>();
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<ISessionStore, SessionStore>();
+        services.AddScoped<ITenantStore, TenantStore>();
+        services.AddScoped<ITenantMembershipResolver, TenantMembershipResolver>();
+        services.AddScoped<IAuditLogger, AuditLogger>();
+
+        services.AddSingleton<DevelopmentEmailService>();
+        services.AddSingleton<IEmailService>(sp => sp.GetRequiredService<DevelopmentEmailService>());
+        services.AddSingleton<IDevEmailOutbox>(sp => sp.GetRequiredService<DevelopmentEmailService>());
 
         services
             .AddIdentityCore<ApplicationUser>(options =>

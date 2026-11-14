@@ -1,5 +1,46 @@
 # Project Progress Report
 
+## Phase 2 — Identity and Multi-Tenant Foundation
+**Status:** Completed  
+**Date:** 2026-11-15
+
+### What Was Implemented
+- **Domain Entities & Catalogs (`SaaS.Domain`):**
+  - `Identity`: `UserSession`, `RefreshToken` (state transitions, active/expired/revoked tracking).
+  - `Tenants`: `Tenant` (`Active`/`Suspended`/`Pending`), `TenantSlug` (regex normalization + reserved slug validation), `TenantSettings` (timezone, locale, allowed email domains with enforcement invariant), domain events.
+  - `AccessControl`: `TenantRole` (system role immutability checks), `RolePermission`, `PermissionCatalog` (5 core roles: Platform Administrator, Organization Owner, Organization Administrator, Manager, Member; 14 granular tenant capabilities).
+  - `Memberships`: `TenantMembership` (tenant-scoped membership linking users and roles).
+  - `Audit`: `AuditLog` (`AuditScope` Platform/Tenant, `AuditCategory`, immutable factories `CreateTenantEvent` / `CreatePlatformEvent`).
+- **Application Use Cases & Ports (`SaaS.Application`):**
+  - Abstractions: `IIdentityService`, `IJwtTokenGenerator`, `IEmailService`, `IAuditLogger`, `ITenantMembershipResolver`, `ISessionStore`, `ITenantStore`.
+  - Identity module: `RegisterUser`, `VerifyEmail`, `Login`, `RefreshToken`, `Logout`, `PasswordReset`, `SessionsAndProfile`.
+  - Tenants module: `CreateTenant`, `ManageTenants`, `TenantSettingsUseCases`.
+- **Infrastructure & Persistence (`SaaS.Infrastructure`):**
+  - EF Core configurations with `AddIdentityAndTenantFoundation` migration: composite alternate key `(tenant_id, id)` on `tenant_roles`, composite FK `(tenant_id, role_id)` on `tenant_memberships`, `xmin` optimistic concurrency tokens, `jsonb` metadata column, fail-closed `AuditLog` global query filter.
+  - `JwtTokenGenerator` (HMAC-SHA256 access tokens + `RandomNumberGenerator` opaque refresh tokens), `IdentityService`, `SessionStore`, `TenantStore`, `TenantMembershipResolver`, `AuditLogger` (sensitive key redaction), `DevelopmentEmailService`, and `DatabaseSeeder` (Platform Admin, `Acme Corp`, `Globex Labs`, multi-tenant consultant).
+- **API & Multi-Tenant Enforcement (`SaaS.API`):**
+  - `AuthExtensions` (`OnTokenValidated` verifies active `UserSession` in DB on every request).
+  - `[UserScoped]`, `[PlatformAdminOnly]`, `[HasPermission]` authorization attributes & dynamic permission policy provider/handler.
+  - `TenantResolutionMiddleware`: enforces `X-Tenant-Id` on tenant-scoped endpoints, verifies active membership in PostgreSQL, returns `403`/`400` ProblemDetails cleanly, and logs denied cross-tenant access attempts.
+  - `AuthController` (`/api/v1/auth/...`) and `TenantsController` (`/api/v1/tenants/...`).
+
+### Tests Executed (Post Final Code Edit)
+- `dotnet build MultiTenantSaaS.sln --no-restore -p:UseSharedCompilation=false -m:1`: **0 Warnings, 0 Errors**.
+- `dotnet test MultiTenantSaaS.sln --no-build --verbosity normal` (with Testcontainers PostgreSQL 17):
+  - `SaaS.Domain.UnitTests`: **19/19 Passed**
+  - `SaaS.Application.UnitTests`: **6/6 Passed**
+  - `SaaS.API.IntegrationTests`: **21/21 Passed**
+  - **Total:** **46/46 Passed**, **0 Failed**, **0 Skipped**.
+
+### Known Limitations (Expected at Phase 2)
+- Employee invitations, member role updates/removals, custom role CRUD, subscription plans & `MockPaymentProvider`, audit log search endpoints, and tenant/platform dashboards are scheduled for **Phase 3**.
+- Redis caching, background hosted jobs (outbox/usage/token cleanup), and Next.js frontend are scheduled for **Phases 4–5**.
+
+### Next Milestone
+- **Phase 3 — Core Business Modules:** Implement Invitations & Membership management, Custom Roles CRUD, Subscriptions & Usage Tracking with `MockPaymentProvider`, Audit Logs querying, and Tenant & Platform Dashboards.
+
+---
+
 ## Phase 1 — Project Foundation
 **Status:** Completed  
 **Date:** 2026-11-15
