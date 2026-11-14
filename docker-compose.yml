@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: saas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-saas_platform}
+      POSTGRES_USER: ${POSTGRES_USER:-saas_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - saas_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-saas_app} -d ${POSTGRES_DB:-saas_platform}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - saas-network
+
+  api:
+    build:
+      context: .
+      dockerfile: src/SaaS.API/Dockerfile
+    container_name: saas-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_HTTP_PORTS: 8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-saas_platform};Username=${POSTGRES_USER:-saas_app};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      Jwt__Issuer: ${Jwt__Issuer:-https://api.saas.local}
+      Jwt__Audience: ${Jwt__Audience:-https://app.saas.local}
+      Jwt__SigningKey: ${Jwt__SigningKey:?Set Jwt__SigningKey in .env}
+      Cors__AllowedOrigins__0: ${Cors__AllowedOrigins__0:-http://localhost:3000}
+    ports:
+      - "8080:8080"
+    networks:
+      - saas-network
+
+volumes:
+  saas_pgdata:
+
+networks:
+  saas-network:
+    driver: bridge

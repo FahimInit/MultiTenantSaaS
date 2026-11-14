@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore MultiTenantSaaS.sln
+
+      - name: Build solution
+        run: dotnet build MultiTenantSaaS.sln --configuration Release --no-restore
+
+      - name: Run Domain Unit Tests
+        run: dotnet test tests/SaaS.Domain.UnitTests/SaaS.Domain.UnitTests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Run Application Unit Tests
+        run: dotnet test tests/SaaS.Application.UnitTests/SaaS.Application.UnitTests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Run API & PostgreSQL Integration Tests
+        run: dotnet test tests/SaaS.API.IntegrationTests/SaaS.API.IntegrationTests.csproj --configuration Release --no-build --verbosity normal

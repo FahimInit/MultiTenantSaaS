@@ -1,0 +1,40 @@
+# .NET / Visual Studio / Rider
+bin/
+obj/
+out/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.idea/
+TestResults/
+coverage*/
+*.trx
+*.coverage
+publish/
+appsettings.Development.Local.json
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+*.pfx
+*.key
+*.pem
+
+# Node / Next.js (frontend)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/dist/
+frontend/.turbo/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Logs & OS
+logs/
+*.log
+.DS_Store
+Thumbs.db

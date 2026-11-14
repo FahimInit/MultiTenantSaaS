@@ -1,0 +1,16 @@
+**/.git
+**/.gitignore
+**/bin
+**/obj
+**/out
+**/TestResults
+**/node_modules
+**/.next
+**/.vs
+**/.idea
+**/.env
+**/.env.*
+!/.env.example
+**/logs
+docs
+tests
