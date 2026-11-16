@@ -22,6 +22,10 @@ public static class DatabaseSeeder
         var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        if (dbContext.Database.IsRelational())
+        {
+            await dbContext.Database.MigrateAsync(cancellationToken);
+        }
         var plans = await EnsureSubscriptionPlansAsync(dbContext, cancellationToken);
 
         var enabled = config.GetValue<bool>("SeedDemoData:Enabled");

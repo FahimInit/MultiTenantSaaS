@@ -55,6 +55,9 @@ services:
       Jwt__Audience: ${Jwt__Audience:-https://app.saas.local}
       Jwt__SigningKey: ${Jwt__SigningKey:?Set Jwt__SigningKey in .env}
       Cors__AllowedOrigins__0: ${Cors__AllowedOrigins__0:-http://localhost:3000}
+      SeedDemoData__RunOnStartup: ${SeedDemoData__RunOnStartup:-true}
+      SeedDemoData__Enabled: ${SeedDemoData__Enabled:-true}
+      SeedDemoData__DefaultPassword: ${SeedDemoData__DefaultPassword:-DemoPass123!}
     ports:
       - "8080:8080"
     networks:

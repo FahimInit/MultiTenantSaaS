@@ -390,8 +390,8 @@ export default function LoginPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Seeded Development Personas</CardTitle>
               <CardDescription className="text-xs">
-                Click an email to pre-fill, then enter your local{" "}
-                <code>SeedDemoData:DefaultPassword</code>.
+                Click an account to pre-fill credentials (Password:{" "}
+                <code>DemoPass123!</code>).
               </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -399,7 +399,10 @@ export default function LoginPage() {
                 <button
                   key={demo.email}
                   type="button"
-                  onClick={() => setValue("email", demo.email)}
+                  onClick={() => {
+                    setValue("email", demo.email, { shouldValidate: true });
+                    setValue("password", "DemoPass123!", { shouldValidate: true });
+                  }}
                   className="rounded-md border bg-background px-2.5 py-1.5 text-left transition-colors hover:bg-accent"
                 >
                   <p className="text-xs font-medium">{demo.label}</p>
