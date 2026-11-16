@@ -11,6 +11,9 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.LoadDotEnvIfDevelopment();
+builder.Configuration.AddJsonFile("appsettings.Development.Local.json", optional: true, reloadOnChange: true);
+
 builder.Services.AddSerilog((services, loggerConfiguration) =>
     loggerConfiguration
         .ReadFrom.Configuration(builder.Configuration)

@@ -43,11 +43,6 @@ public static class DatabaseSeeder
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var dateTimeProvider = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>();
 
-        if (await dbContext.Tenants.AsNoTracking().AnyAsync(cancellationToken))
-        {
-            return;
-        }
-
         var now = dateTimeProvider.UtcNow;
 
         async Task<ApplicationUser> EnsureUserAsync(string email, string fullName, string? platformRole = null)
@@ -55,6 +50,12 @@ public static class DatabaseSeeder
             var existing = await userManager.FindByEmailAsync(email);
             if (existing is not null)
             {
+                if (!await userManager.CheckPasswordAsync(existing, demoPassword))
+                {
+                    var resetToken = await userManager.GeneratePasswordResetTokenAsync(existing);
+                    await userManager.ResetPasswordAsync(existing, resetToken, demoPassword);
+                }
+
                 return existing;
             }
 
@@ -90,6 +91,12 @@ public static class DatabaseSeeder
         var eve = await EnsureUserAsync("eve@globex.local", "Eve Morales");
 
         var consultant = await EnsureUserAsync("consultant@demo.local", "Jordan Cross");
+
+        var acmeSlug = TenantSlug.Create("acme-corp");
+        if (await dbContext.Tenants.AsNoTracking().AnyAsync(t => t.Slug == acmeSlug, cancellationToken))
+        {
+            return;
+        }
 
         // Tenant 1: Acme Corp (Pro Active)
         var acme = Tenant.Create("Acme Corp", "acme-corp", alice.Id, now);

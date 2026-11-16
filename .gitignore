@@ -36,5 +36,8 @@ pnpm-debug.log*
 # Logs & OS
 logs/
 *.log
+security-and-bugfix.log
+.gitignore
+frontend/.gitignore
 .DS_Store
 Thumbs.db

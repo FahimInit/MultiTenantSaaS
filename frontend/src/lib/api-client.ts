@@ -188,16 +188,26 @@ export async function apiRequest<T>(
     headers.set("X-Tenant-Id", tenantId);
   }
 
-  const response = await fetch(buildUrl(path, query), {
-    ...restInit,
-    headers,
-    body:
-      body === undefined
-        ? undefined
-        : body instanceof FormData
-          ? body
-          : JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(buildUrl(path, query), {
+      ...restInit,
+      headers,
+      body:
+        body === undefined
+          ? undefined
+          : body instanceof FormData
+            ? body
+            : JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiProblemError(0, {
+      status: 0,
+      title: "Backend API Unreachable",
+      detail: `Could not connect to the backend API (${API_BASE_URL}). Ensure PostgreSQL and the ASP.NET Core API are running.`,
+      errorCode: "network_unreachable",
+    });
+  }
 
   if (response.status === 401 && !skipAuth && !_retried) {
     await refreshSessionSingleFlight();

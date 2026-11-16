@@ -50,7 +50,8 @@ const DEMO_ACCOUNTS = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const { status, applyAuthResponse } = useAuthTenant();
+  const { status, isPlatformAdmin, currentTenant, tenants, applyAuthResponse } =
+    useAuthTenant();
   const { theme, mounted, toggleTheme } = useTheme();
   const [serverError, setServerError] = React.useState<string | null>(null);
   const [infoMessage, setInfoMessage] = React.useState<string | null>(null);
@@ -59,6 +60,7 @@ export default function LoginPage() {
   const [mode, setMode] = React.useState<"login" | "forgot" | "reset">("login");
 
   const showDemoHints = process.env.NEXT_PUBLIC_SHOW_DEMO_HINTS === "true";
+  const demoPassword = process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? "";
 
   const {
     register,
@@ -77,10 +79,23 @@ export default function LoginPage() {
   });
 
   React.useEffect(() => {
-    if (status === "authenticated") {
-      router.replace("/dashboard");
+    if (status === "authenticated" && !isSubmitting) {
+      if (isPlatformAdmin && tenants.length === 0) {
+        router.replace("/platform");
+      } else if (!currentTenant || !currentTenant.onboardingCompleted) {
+        router.replace("/onboarding");
+      } else {
+        router.replace("/dashboard");
+      }
     }
-  }, [status, router]);
+  }, [
+    status,
+    isSubmitting,
+    isPlatformAdmin,
+    tenants.length,
+    currentTenant,
+    router,
+  ]);
 
   const onLogin = async (values: LoginFormValues) => {
     setServerError(null);
@@ -390,8 +405,9 @@ export default function LoginPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Seeded Development Personas</CardTitle>
               <CardDescription className="text-xs">
-                Click an account to pre-fill credentials (Password:{" "}
-                <code>DemoPass123!</code>).
+                {demoPassword
+                  ? "Click an account to pre-fill email and local development password."
+                  : "Click an account to pre-fill email, then enter your local SeedDemoData:DefaultPassword."}
               </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -401,7 +417,11 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => {
                     setValue("email", demo.email, { shouldValidate: true });
-                    setValue("password", "DemoPass123!", { shouldValidate: true });
+                    if (demoPassword) {
+                      setValue("password", demoPassword, {
+                        shouldValidate: true,
+                      });
+                    }
                   }}
                   className="rounded-md border bg-background px-2.5 py-1.5 text-left transition-colors hover:bg-accent"
                 >

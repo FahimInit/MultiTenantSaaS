@@ -113,7 +113,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex h-full flex-col justify-between p-4">
       <div className="space-y-6">
         <div className="flex items-center justify-between px-1">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
+          <Link
+            href={
+              isPlatformAdmin && tenants.length === 0
+                ? "/platform"
+                : "/dashboard"
+            }
+            className="flex items-center gap-2.5"
+          >
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Building2 className="h-4 w-4" />
             </div>

@@ -57,7 +57,7 @@ services:
       Cors__AllowedOrigins__0: ${Cors__AllowedOrigins__0:-http://localhost:3000}
       SeedDemoData__RunOnStartup: ${SeedDemoData__RunOnStartup:-true}
       SeedDemoData__Enabled: ${SeedDemoData__Enabled:-true}
-      SeedDemoData__DefaultPassword: ${SeedDemoData__DefaultPassword:-DemoPass123!}
+      SeedDemoData__DefaultPassword: ${SeedDemoData__DefaultPassword:-}
     ports:
       - "8080:8080"
     networks:
