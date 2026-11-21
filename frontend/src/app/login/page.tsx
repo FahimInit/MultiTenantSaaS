@@ -40,12 +40,17 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type ResetFormValues = z.infer<typeof resetSchema>;
 
 const DEMO_ACCOUNTS = [
+  {
+    email: "platform.admin@saas.local",
+    label: "Platform Admin",
+    spanFull: true,
+  },
   { email: "alice@acme.local", label: "Acme Owner (Pro)" },
   { email: "bob@acme.local", label: "Acme Admin" },
   { email: "carol@acme.local", label: "Acme Member" },
   { email: "dave@globex.local", label: "Globex Owner (Free)" },
+  { email: "eve@globex.local", label: "Globex Manager" },
   { email: "consultant@demo.local", label: "Multi-Org User" },
-  { email: "platform.admin@saas.local", label: "Platform Admin" },
 ];
 
 export default function LoginPage() {
@@ -59,8 +64,8 @@ export default function LoginPage() {
     React.useState<string | null>(null);
   const [mode, setMode] = React.useState<"login" | "forgot" | "reset">("login");
 
-  const showDemoHints = process.env.NEXT_PUBLIC_SHOW_DEMO_HINTS === "true";
-  const demoPassword = process.env.NEXT_PUBLIC_DEMO_PASSWORD ?? "";
+  const showDemoHints = process.env.NEXT_PUBLIC_SHOW_DEMO_HINTS !== "false";
+  const demoPassword = process.env.NEXT_PUBLIC_DEMO_PASSWORD || "DemoPass123!";
 
   const {
     register,
@@ -403,11 +408,14 @@ export default function LoginPage() {
         {showDemoHints && mode === "login" && (
           <Card className="bg-muted/40">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Seeded Development Personas</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-sm">Demo Accounts</CardTitle>
+                <span className="rounded bg-background px-2 py-0.5 font-mono text-[11px] text-muted-foreground border">
+                  Password: {demoPassword}
+                </span>
+              </div>
               <CardDescription className="text-xs">
-                {demoPassword
-                  ? "Click an account to pre-fill email and local development password."
-                  : "Click an account to pre-fill email, then enter your local SeedDemoData:DefaultPassword."}
+                Click any account below to auto-fill email and password.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
@@ -417,13 +425,13 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => {
                     setValue("email", demo.email, { shouldValidate: true });
-                    if (demoPassword) {
-                      setValue("password", demoPassword, {
-                        shouldValidate: true,
-                      });
-                    }
+                    setValue("password", demoPassword, {
+                      shouldValidate: true,
+                    });
                   }}
-                  className="rounded-md border bg-background px-2.5 py-1.5 text-left transition-colors hover:bg-accent"
+                  className={`rounded-md border bg-background px-2.5 py-1.5 text-left transition-colors hover:bg-accent ${
+                    demo.spanFull ? "sm:col-span-2" : ""
+                  }`}
                 >
                   <p className="text-xs font-medium">{demo.label}</p>
                   <p className="truncate font-mono text-[11px] text-muted-foreground">
