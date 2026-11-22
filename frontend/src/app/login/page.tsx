@@ -63,6 +63,7 @@ export default function LoginPage() {
   const [needsVerificationEmail, setNeedsVerificationEmail] =
     React.useState<string | null>(null);
   const [mode, setMode] = React.useState<"login" | "forgot" | "reset">("login");
+  const [slowLoginHint, setSlowLoginHint] = React.useState(false);
 
   const showDemoHints = process.env.NEXT_PUBLIC_SHOW_DEMO_HINTS !== "false";
   const demoPassword = process.env.NEXT_PUBLIC_DEMO_PASSWORD || "DemoPass123!";
@@ -82,6 +83,15 @@ export default function LoginPage() {
     resolver: zodResolver(resetSchema),
     defaultValues: { email: "", token: "", newPassword: "" },
   });
+
+  React.useEffect(() => {
+    if (!isSubmitting) {
+      setSlowLoginHint(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setSlowLoginHint(true), 4000);
+    return () => window.clearTimeout(timer);
+  }, [isSubmitting]);
 
   React.useEffect(() => {
     if (status === "authenticated" && !isSubmitting) {
@@ -300,6 +310,12 @@ export default function LoginPage() {
                 >
                   Sign in
                 </Button>
+                {slowLoginHint && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    Waking up the free-tier backend server — initial sign-in may
+                    take up to 30–50 seconds.
+                  </p>
+                )}
               </form>
             )}
 

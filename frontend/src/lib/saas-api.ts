@@ -62,7 +62,6 @@ export const authApi = {
     apiRequest<void>("/auth/logout", {
       method: "POST",
       body: { refreshToken },
-      skipAuth: true,
     }),
 
   forgotPassword: (email: string) =>

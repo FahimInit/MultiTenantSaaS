@@ -366,7 +366,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 p-4 lg:p-8">
+        <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 p-4 lg:p-8">
           {currentTenant?.status === "Suspended" && (
             <Alert
               variant="destructive"

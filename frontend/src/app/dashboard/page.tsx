@@ -233,7 +233,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-3">
-                  <Card className="lg:col-span-1">
+                  <Card className="min-w-0 lg:col-span-1">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Shield className="h-4 w-4" />
@@ -273,7 +273,7 @@ export default function DashboardPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="lg:col-span-2">
+                  <Card className="min-w-0 lg:col-span-2">
                     <CardHeader className="flex flex-row items-center justify-between">
                       <div>
                         <CardTitle className="flex items-center gap-2">

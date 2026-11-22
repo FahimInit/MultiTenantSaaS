@@ -312,7 +312,9 @@ export default function PlatformPage() {
                 plan catalog management, and cross-tenant audit telemetry.
               </p>
             </div>
-            <Badge variant="info">PlatformAdministrator</Badge>
+            <Badge variant="info" className="w-fit self-start sm:self-center">
+              PlatformAdministrator
+            </Badge>
           </div>
 
           {errorMsg && (

@@ -110,25 +110,33 @@ export default function AuditLogsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-              <div className="relative lg:col-span-2">
-                <Label htmlFor="audit-search" className="sr-only">
+              <div className="space-y-1 lg:col-span-2">
+                <Label
+                  htmlFor="audit-search"
+                  className="text-xs text-muted-foreground"
+                >
                   Search
                 </Label>
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="audit-search"
-                  placeholder="Search description, actor, correlation ID..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  className="pl-8"
-                />
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="audit-search"
+                    placeholder="Description, actor, correlation ID..."
+                    value={search}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      setPage(1);
+                    }}
+                    className="pl-8"
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="audit-category" className="sr-only">
+              <div className="space-y-1">
+                <Label
+                  htmlFor="audit-category"
+                  className="text-xs text-muted-foreground"
+                >
                   Category
                 </Label>
                 <Select
@@ -148,13 +156,16 @@ export default function AuditLogsPage() {
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="audit-action" className="sr-only">
-                  Action
+              <div className="space-y-1">
+                <Label
+                  htmlFor="audit-action"
+                  className="text-xs text-muted-foreground"
+                >
+                  Action Code
                 </Label>
                 <Input
                   id="audit-action"
-                  placeholder="Action code (e.g. MEMBER_ROLE_UPDATED)"
+                  placeholder="e.g. MEMBER_ROLE_UPDATED"
                   value={action}
                   onChange={(e) => {
                     setAction(e.target.value);
@@ -163,9 +174,12 @@ export default function AuditLogsPage() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="audit-from" className="sr-only">
-                  From Date
+              <div className="space-y-1">
+                <Label
+                  htmlFor="audit-from"
+                  className="text-xs text-muted-foreground"
+                >
+                  From (UTC)
                 </Label>
                 <Input
                   id="audit-from"
@@ -180,32 +194,49 @@ export default function AuditLogsPage() {
               </div>
 
               <div className="flex gap-2">
-                <Input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => {
-                    setToDate(e.target.value);
-                    setPage(1);
-                  }}
-                  title="To UTC date"
-                />
-                <Select
-                  aria-label="Sort order"
-                  value={sortDirection}
-                  onChange={(e) => {
-                    setSortDirection(e.target.value as "asc" | "desc");
-                    setPage(1);
-                  }}
-                  className="w-28 shrink-0"
-                >
-                  <option value="desc">Newest</option>
-                  <option value="asc">Oldest</option>
-                </Select>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <Label
+                    htmlFor="audit-to"
+                    className="text-xs text-muted-foreground"
+                  >
+                    To (UTC)
+                  </Label>
+                  <Input
+                    id="audit-to"
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => {
+                      setToDate(e.target.value);
+                      setPage(1);
+                    }}
+                    title="To UTC date"
+                  />
+                </div>
+                <div className="w-24 shrink-0 space-y-1">
+                  <Label
+                    htmlFor="audit-sort"
+                    className="text-xs text-muted-foreground"
+                  >
+                    Sort
+                  </Label>
+                  <Select
+                    id="audit-sort"
+                    aria-label="Sort order"
+                    value={sortDirection}
+                    onChange={(e) => {
+                      setSortDirection(e.target.value as "asc" | "desc");
+                      setPage(1);
+                    }}
+                  >
+                    <option value="desc">Newest</option>
+                    <option value="asc">Oldest</option>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="min-w-0">
             <CardContent className="pt-5">
               {logsQuery.isLoading ? (
                 <p className="py-10 text-center text-sm text-muted-foreground">

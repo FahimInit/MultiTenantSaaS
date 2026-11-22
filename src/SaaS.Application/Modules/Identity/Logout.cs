@@ -19,6 +19,7 @@ public sealed class LogoutHandler : ICommandHandler<LogoutCommand>
 {
     private readonly IValidator<LogoutCommand> _validator;
     private readonly ISessionStore _sessionStore;
+    private readonly IIdentityService _identityService;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly ICurrentUser _currentUser;
     private readonly IUnitOfWork _unitOfWork;
@@ -28,6 +29,7 @@ public sealed class LogoutHandler : ICommandHandler<LogoutCommand>
     public LogoutHandler(
         IValidator<LogoutCommand> validator,
         ISessionStore sessionStore,
+        IIdentityService identityService,
         IJwtTokenGenerator jwtTokenGenerator,
         ICurrentUser currentUser,
         IUnitOfWork unitOfWork,
@@ -36,6 +38,7 @@ public sealed class LogoutHandler : ICommandHandler<LogoutCommand>
     {
         _validator = validator;
         _sessionStore = sessionStore;
+        _identityService = identityService;
         _jwtTokenGenerator = jwtTokenGenerator;
         _currentUser = currentUser;
         _unitOfWork = unitOfWork;
@@ -68,9 +71,16 @@ public sealed class LogoutHandler : ICommandHandler<LogoutCommand>
             cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var actorEmail = _currentUser.Email;
+        if (string.IsNullOrWhiteSpace(actorEmail))
+        {
+            var user = await _identityService.FindByIdAsync(token.UserId, cancellationToken);
+            actorEmail = user?.Email ?? "user";
+        }
+
         await _auditLogger.LogPlatformAsync(
             token.UserId,
-            _currentUser.Email ?? "user",
+            actorEmail,
             AuditCategory.Identity,
             "USER_LOGOUT",
             "UserSession",
