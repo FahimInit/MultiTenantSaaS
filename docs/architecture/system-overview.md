@@ -6,6 +6,36 @@ The **Multi-Tenant SaaS Management Platform** is designed as a **Clean Architect
 
 Rather than introducing premature distributed systems complexity (microservices, separate databases per module, service meshes), the system establishes strict **compile-time project boundaries**, **logical module isolation**, and **database-enforced tenant boundaries** inside a single cohesive deployment unit.
 
+```mermaid
+flowchart TB
+    Frontend["Next.js 15 Dashboard (frontend/)<br/>App Router, TanStack Query, React Hook Form, Zod"]
+
+    subgraph Monolith["ASP.NET Core Modular Monolith (src/)"]
+        Pipeline["HTTP Pipeline (SaaS.API)<br/>CorrelationId · ExceptionHandling · RateLimiter · JWT · TenantResolution"]
+
+        subgraph Modules["Logical Business Modules (SaaS.Application + SaaS.Domain)"]
+            M1["Identity & Sessions"]
+            M2["Tenants & Onboarding"]
+            M3["Memberships & Invitations"]
+            M4["Roles & Permissions (RBAC)"]
+            M5["Subscriptions & Quotas"]
+            M6["Audit Logging"]
+            M7["Tenant Dashboard & Platform Admin"]
+        end
+
+        Infra["Infrastructure Adapters (SaaS.Infrastructure)<br/>EF Core 9 + Write Guard · Identity · Redis/Memory Cache · Email · MockPayment · Hosted Workers"]
+    end
+
+    Pg[("PostgreSQL<br/>Shared Schema + Composite FKs")]
+    Redis[("Redis<br/>Permission Cache & Rate Limit")]
+
+    Frontend -->|"REST JSON + JWT + X-Tenant-Id"| Pipeline
+    Pipeline --> Modules
+    Modules --> Infra
+    Infra -->|"Npgsql"| Pg
+    Infra -.->|"StackExchange.Redis"| Redis
+```
+
 ---
 
 ## 2. Primary Architectural Drivers

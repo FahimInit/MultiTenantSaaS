@@ -12,7 +12,17 @@
 
 ## 2. Database-Enforced Tenant Integrity
 
+> See the full schema in the [Entity-Relationship Diagram](./er-diagram.md).
+
 Application-level query filters alone do not prevent relational bugs. The schema enforces tenant boundaries directly inside PostgreSQL:
+
+```mermaid
+flowchart LR
+    Tenants["tenants<br/>PK: id"] --> Roles["tenant_roles<br/>PK: id<br/>Alternate Key: (tenant_id, id)"]
+    Roles -->|"Composite FK (tenant_id, role_id)"| RolePerms["tenant_role_permissions<br/>PK: (tenant_id, role_id, permission_code)"]
+    Roles -->|"Composite FK (tenant_id, role_id)"| Members["tenant_memberships<br/>Unique: (tenant_id, user_id)"]
+    Roles -->|"Composite FK (tenant_id, role_id)"| Invites["tenant_invitations<br/>Partial Unique: (tenant_id, normalized_email) WHERE status='Pending'"]
+```
 
 1. **Non-Nullable `tenant_id`:** Every tenant-owned table defines `tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE RESTRICT`.
 2. **Composite Foreign Keys Preventing Cross-Tenant References:**

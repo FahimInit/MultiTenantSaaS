@@ -34,7 +34,20 @@ flowchart TB
 
 ---
 
-## 2. Environment & Secret Management Strategy
+## 2. Live Cloud Showcase Topology
+
+For public portfolio hosting, each tier runs on managed cloud infrastructure over TLS:
+
+```mermaid
+flowchart LR
+    Visitor["Browser Client<br/>(HTTPS)"] -->|"Static & App Router UI"| Vercel["Vercel<br/>Next.js 15 Frontend<br/>(multi-tenant-saa-s-seven.vercel.app)"]
+    Visitor -->|"CORS-Allowed REST + JWT + X-Tenant-Id"| Render["Render Web Service<br/>Docker Container (src/SaaS.API/Dockerfile)"]
+    Render -->|"Npgsql TLS (SSL Mode=Require)"| Neon[("Neon Serverless PostgreSQL<br/>Managed Cloud Database")]
+```
+
+---
+
+## 3. Environment & Secret Management Strategy
 
 - **Zero Secrets in Repository:** `.env.example` provides structural templates only; actual secrets (`JWT_SIGNING_KEY`, `POSTGRES_PASSWORD`, `SMTP_PASSWORD`) are injected via environment variables or Docker secrets.
 - **Database Credentials Isolation:** Application connects with a dedicated least-privilege PostgreSQL user (not cluster superuser in production) and executes migrations cleanly via startup migration runner (dev) or CI migration bundle/command (prod).
@@ -45,9 +58,21 @@ flowchart TB
 
 ---
 
-## 3. CI/CD Pipeline Flow (GitHub Actions)
+## 4. CI/CD Pipeline Flow (GitHub Actions)
 
-1. **Trigger:** Push or Pull Request to `main` / `develop`.
+```mermaid
+flowchart LR
+    Trigger["Push / Pull Request<br/>(.github/workflows/ci.yml)"] --> BackendJob["Backend Job<br/>Restore & Build .NET 9 Release"]
+    Trigger --> FrontendJob["Frontend Job<br/>npm ci + tsc --noEmit"]
+
+    BackendJob --> UnitTests["Domain & Application<br/>Unit Tests (xUnit)"]
+    UnitTests --> IntTests["API & PostgreSQL Integration Tests<br/>(Testcontainers + NetArchTest)"]
+
+    FrontendJob --> Lint["ESLint Check<br/>(npm run lint)"]
+    Lint --> FeBuild["Next.js Production Build<br/>(npm run build)"]
+```
+
+1. **Trigger:** Push or Pull Request to `main` / `develop` (or `master`).
 2. **Backend Job:**
    - Restore & Build (`dotnet build --configuration Release`).
    - Run `SaaS.Domain.UnitTests` and `SaaS.Application.UnitTests`.

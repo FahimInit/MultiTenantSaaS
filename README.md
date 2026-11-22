@@ -55,6 +55,70 @@ All seeded demo accounts use the password **`DemoPass123!`**:
 
 ---
 
+## Architecture Overview
+
+### 1. System & Cloud Topology
+
+```mermaid
+flowchart TB
+    Browser["Client Browser<br/>(Org Users & Platform Admins)"]
+
+    subgraph Edge["Frontend Tier (Vercel / Next.js 15)"]
+        WebApp["Next.js App Router Dashboard<br/>(TypeScript, Tailwind, TanStack Query, Zod)"]
+    end
+
+    subgraph ApiHost["Backend Tier (Render Docker / ASP.NET Core 9)"]
+        Middleware["Security, Rate Limit, JWT &<br/>TenantResolutionMiddleware (X-Tenant-Id)"]
+        AppCore["Modular Monolith Core<br/>(Identity · Tenants · Memberships · RBAC · Billing · Audit)"]
+        Workers["Background Workers (IHostedService)<br/>(Expiry Sweeps, Usage Snapshots, Retention)"]
+    end
+
+    subgraph DataTier["Persistence & Cache Tier"]
+        Postgres[("PostgreSQL (Neon / Docker)<br/>Shared Schema + Composite FKs + Query Filters")]
+        Cache[("Distributed Cache<br/>(Redis / In-Memory Epoch Cache)")]
+    end
+
+    Browser -->|"HTTPS"| WebApp
+    WebApp -->|"REST JSON + JWT Bearer + X-Tenant-Id"| Middleware
+    Middleware --> AppCore
+    AppCore -->|"EF Core / Npgsql"| Postgres
+    AppCore -.->|"Permission & Membership Cache"| Cache
+    Workers -->|"Scoped Tenant Context"| Postgres
+```
+
+### 2. Clean Architecture Dependency Flow
+
+Dependencies point strictly inward, verified automatically by **NetArchTest** rules in `SaaS.API.IntegrationTests`:
+
+```mermaid
+flowchart LR
+    API["SaaS.API<br/>(Controllers, Middleware, OpenAPI)"]
+    INF["SaaS.Infrastructure<br/>(EF Core, PostgreSQL, Identity, Redis, Jobs)"]
+    APP["SaaS.Application<br/>(CQRS Handlers, FluentValidation, Ports)"]
+    DOM["SaaS.Domain<br/>(Entities, Value Objects, Domain Rules)"]
+
+    API --> APP
+    API --> INF
+    INF --> APP
+    INF --> DOM
+    APP --> DOM
+```
+
+### 3. Multi-Tenant Request & Security Pipeline
+
+```mermaid
+flowchart LR
+    Req["HTTP Request"] --> Corr["Correlation ID &<br/>Security Headers"]
+    Corr --> Rate["Rate Limiter &<br/>CORS Policy"]
+    Rate --> Jwt["JWT Bearer<br/>Authentication"]
+    Jwt --> Tenant["TenantResolutionMiddleware<br/>(Validates X-Tenant-Id & Membership)"]
+    Tenant --> Rbac["RBAC Authorization<br/>(HasPermission / PlatformAdminOnly)"]
+    Rbac --> Handler["Application Handler<br/>(Quota & Domain Invariants)"]
+    Handler --> DbGuard["EF Global Query Filter +<br/>TenantWriteGuardInterceptor + Composite FKs"]
+```
+
+---
+
 ## Solution Structure
 
 ```text

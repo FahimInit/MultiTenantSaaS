@@ -6,6 +6,17 @@ Security is treated as an invariant across every layer. **EF Core global query f
 
 ## 1. Six-Layer Defense-in-Depth for Tenant Isolation
 
+```mermaid
+flowchart TB
+    Req["Incoming Workspace API Request<br/>(Bearer JWT + X-Tenant-Id)"] --> L1["Layer 1: Authentication & Token Binding<br/>Validate JWT signature, expiry, SecurityStamp & active UserSession"]
+    L1 --> L2["Layer 2: Trustworthy Tenant Resolution<br/>TenantResolutionMiddleware checks active Membership & Tenant.Status"]
+    L2 -->|"No membership or Suspended"| Deny403["403 Forbidden + Audit CROSS_TENANT_ACCESS_DENIED"]
+    L2 -->|"Active member"| L3["Layer 3: Capability Authorization<br/>PermissionAuthorizationHandler evaluates HasPermission policy"]
+    L3 --> L4["Layer 4: Handler & Domain Invariants<br/>Explicit TenantId scoping, role hierarchy & last-owner checks"]
+    L4 --> L5["Layer 5: EF Core Safeguards<br/>Global Query Filter + TenantWriteGuardInterceptor"]
+    L5 --> L6["Layer 6: PostgreSQL Engine Constraints<br/>Composite FKs (tenant_id, role_id) + Scoped Unique Indexes"]
+```
+
 | Layer | Mechanism | Threat Mitigated |
 |---|---|---|
 | **1. Authentication & Token Binding** | Short-lived JWT Bearer tokens (15 min) + SHA-256 hashed Refresh Tokens with Family Reuse Detection + SecurityStamp/Session checks. | Forged identity, stolen refresh token replay. |
@@ -30,6 +41,26 @@ Security is treated as an invariant across every layer. **EF Core global query f
 ### T3: Refresh Token Theft & Replay
 - **Attack:** Attacker intercepts a refresh token and uses it before or after the legitimate client.
 - **Defense:** Every refresh token is single-use and belongs to a `TokenFamilyId`. Presenting a previously rotated/revoked token triggers immediate revocation of the entire token family and owning `UserSession`, forcing re-authentication and logging a security alert.
+
+```mermaid
+sequenceDiagram
+    actor Client as "Legitimate Client"
+    actor Attacker as "Token Thief"
+    participant API as "Auth API"
+    participant DB as "PostgreSQL"
+
+    Client->>API: "POST /auth/refresh (Token T1)"
+    API->>DB: "Mark T1 revoked, issue T2 (same TokenFamilyId)"
+    API-->>Client: "200 OK { AccessToken, RefreshToken T2 }"
+
+    Attacker->>API: "POST /auth/refresh (Replays old T1)"
+    API->>DB: "Detect T1 already revoked -> Revoke entire TokenFamilyId & UserSession"
+    API->>DB: "Write AuditLog (REFRESH_TOKEN_REUSE_DETECTED)"
+    API-->>Attacker: "401 Unauthorized"
+
+    Client->>API: "POST /auth/refresh (Uses T2)"
+    API-->>Client: "401 Unauthorized (Session locked; re-login required)"
+```
 
 ### T4: Privilege Escalation via Role/Membership Endpoints
 - **Attack:** An `Organization Administrator` or `Manager` attempts to promote themselves to `Organization Owner` or assign `billing.manage` to a custom role.
