@@ -6,7 +6,15 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, KeyRound, MailCheck, Moon, Sun } from "lucide-react";
+import {
+  Building2,
+  Eye,
+  EyeOff,
+  KeyRound,
+  MailCheck,
+  Moon,
+  Sun,
+} from "lucide-react";
 import { authApi } from "@/lib/saas-api";
 import { ApiProblemError } from "@/lib/api-client";
 import { extractErrorMessage } from "@/lib/formatters";
@@ -64,6 +72,8 @@ export default function LoginPage() {
     React.useState<string | null>(null);
   const [mode, setMode] = React.useState<"login" | "forgot" | "reset">("login");
   const [slowLoginHint, setSlowLoginHint] = React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
 
   const showDemoHints = process.env.NEXT_PUBLIC_SHOW_DEMO_HINTS !== "false";
   const demoPassword = process.env.NEXT_PUBLIC_DEMO_PASSWORD || "DemoPass123!";
@@ -289,13 +299,30 @@ export default function LoginPage() {
                       Forgot password?
                     </button>
                   </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder="••••••••••••"
-                    {...register("password")}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      placeholder="••••••••••••"
+                      className="pr-10"
+                      {...register("password")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                   {errors.password && (
                     <p className="text-xs text-destructive">
                       {errors.password.message}
@@ -372,11 +399,30 @@ export default function LoginPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="new-password">New Password</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    {...resetForm.register("newPassword")}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={showNewPassword ? "text" : "password"}
+                      className="pr-10"
+                      {...resetForm.register("newPassword")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                      aria-label={
+                        showNewPassword
+                          ? "Hide new password"
+                          : "Show new password"
+                      }
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                   {resetForm.formState.errors.newPassword && (
                     <p className="text-xs text-destructive">
                       {resetForm.formState.errors.newPassword.message}
