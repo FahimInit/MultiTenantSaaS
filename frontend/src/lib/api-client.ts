@@ -111,6 +111,7 @@ export async function refreshSessionSingleFlight(): Promise<AuthTokenResponse> {
     if (!response.ok) {
       authStorage.setTokens(null);
       authStorage.setActiveTenantId(null);
+      authStorage.broadcast({ type: "LOGOUT" });
       throw await parseProblemResponse(response);
     }
 

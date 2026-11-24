@@ -7,12 +7,22 @@ export interface StoredTokens {
 
 const TOKEN_STORAGE_KEY = "saas.platform.tokens.v1";
 const TENANT_STORAGE_KEY = "saas.platform.activeTenantId.v1";
+const AUTH_BROADCAST_CHANNEL = "saas.platform.auth.v1";
+
+export type AuthBroadcastEvent =
+  | { type: "LOGOUT" }
+  | { type: "LOGIN" };
 
 type TokenListener = (tokens: StoredTokens | null) => void;
+type CrossTabListener = (event: AuthBroadcastEvent) => void;
 const listeners = new Set<TokenListener>();
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";
+}
+
+function supportsBroadcastChannel(): boolean {
+  return isBrowser() && typeof window.BroadcastChannel !== "undefined";
 }
 
 export const authStorage = {
@@ -62,6 +72,52 @@ export const authStorage = {
     listeners.add(listener);
     return () => {
       listeners.delete(listener);
+    };
+  },
+
+  broadcast(event: AuthBroadcastEvent): void {
+    if (!supportsBroadcastChannel()) return;
+    try {
+      const channel = new window.BroadcastChannel(AUTH_BROADCAST_CHANNEL);
+      channel.postMessage(event);
+      channel.close();
+    } catch {
+      // Ignore BroadcastChannel errors in restricted browsing contexts
+    }
+  },
+
+  subscribeCrossTab(listener: CrossTabListener): () => void {
+    if (!isBrowser()) return () => {};
+
+    let channel: BroadcastChannel | null = null;
+    if (supportsBroadcastChannel()) {
+      try {
+        channel = new window.BroadcastChannel(AUTH_BROADCAST_CHANNEL);
+        channel.onmessage = (msg: MessageEvent<AuthBroadcastEvent>) => {
+          if (msg.data?.type === "LOGOUT" || msg.data?.type === "LOGIN") {
+            listener(msg.data);
+          }
+        };
+      } catch {
+        channel = null;
+      }
+    }
+
+    // Fallback for browsers or contexts where BroadcastChannel is unavailable
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== TOKEN_STORAGE_KEY) return;
+      if (event.newValue === null) {
+        listener({ type: "LOGOUT" });
+      } else if (event.oldValue === null && event.newValue) {
+        listener({ type: "LOGIN" });
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      channel?.close();
     };
   },
 };

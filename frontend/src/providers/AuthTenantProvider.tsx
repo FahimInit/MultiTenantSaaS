@@ -109,6 +109,14 @@ export function AuthTenantProvider({
     [loadTenantContext]
   );
 
+  const clearLocalSessionState = React.useCallback(() => {
+    queryClient.clear();
+    setUser(null);
+    setActiveTenantId(null);
+    setCurrentTenant(null);
+    setStatus("unauthenticated");
+  }, [queryClient]);
+
   React.useEffect(() => {
     void refreshProfile();
   }, [refreshProfile]);
@@ -124,6 +132,17 @@ export function AuthTenantProvider({
     });
   }, []);
 
+  React.useEffect(() => {
+    return authStorage.subscribeCrossTab((event) => {
+      if (event.type === "LOGOUT") {
+        clearLocalSessionState();
+        router.replace("/login");
+      } else if (event.type === "LOGIN") {
+        void refreshProfile();
+      }
+    });
+  }, [clearLocalSessionState, refreshProfile, router]);
+
   const applyAuthResponse = React.useCallback(
     async (response: AuthTokenResponse): Promise<string> => {
       authStorage.setTokens({
@@ -138,6 +157,7 @@ export function AuthTenantProvider({
       const { detail } = await loadTenantContext(me);
       setStatus("authenticated");
       queryClient.clear();
+      authStorage.broadcast({ type: "LOGIN" });
 
       if (me.platformRole === "PlatformAdministrator" && me.tenants.length === 0) {
         return "/platform";
@@ -181,13 +201,10 @@ export function AuthTenantProvider({
     }
     authStorage.setTokens(null);
     authStorage.setActiveTenantId(null);
-    queryClient.clear();
-    setUser(null);
-    setActiveTenantId(null);
-    setCurrentTenant(null);
-    setStatus("unauthenticated");
+    authStorage.broadcast({ type: "LOGOUT" });
+    clearLocalSessionState();
     router.push("/login");
-  }, [queryClient, router]);
+  }, [clearLocalSessionState, router]);
 
   const tenants = user?.tenants ?? [];
   const activeTenantSummary =
