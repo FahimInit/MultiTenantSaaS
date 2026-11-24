@@ -57,6 +57,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/data-display";
+import {
+  DonutChart,
+  HealthGauge,
+  SegmentedQuotaBar,
+} from "@/components/dashboard/DashboardCharts";
 
 const planFormSchema = z.object({
   code: z.string().trim().min(2).max(32),
@@ -434,7 +439,103 @@ export default function PlatformPage() {
                 </Card>
               </div>
 
-              <Card>
+              {/* Platform Visual Analytics Row */}
+              <div className="grid gap-6 lg:grid-cols-12">
+                <Card className="min-w-0 lg:col-span-4">
+                  <CardHeader className="pb-1">
+                    <CardTitle className="text-base">Platform Health</CardTitle>
+                    <CardDescription className="text-xs">
+                      Active tenant ratio & user email verification rate
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex items-center justify-center pt-2">
+                    <HealthGauge
+                      score={Math.round(
+                        ((dashboardQuery.data.totalTenants > 0
+                          ? dashboardQuery.data.activeTenants /
+                            dashboardQuery.data.totalTenants
+                          : 1) *
+                          50) +
+                          ((dashboardQuery.data.totalUsers > 0
+                            ? dashboardQuery.data.verifiedUsers /
+                              dashboardQuery.data.totalUsers
+                            : 1) *
+                            50)
+                      )}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="min-w-0 lg:col-span-4">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">
+                      Plan Adoption Mix
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Organizations distributed across subscription tiers
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex items-center pt-1">
+                    <DonutChart
+                      slices={dashboardQuery.data.planAdoption.map((p, i) => ({
+                        label: p.planName,
+                        value: p.tenantCount,
+                        color: [
+                          "#3b82f6",
+                          "#f97316",
+                          "#8b5cf6",
+                          "#10b981",
+                          "#ef4444",
+                        ][i % 5],
+                      }))}
+                      centerValue={String(dashboardQuery.data.totalTenants)}
+                      centerLabel="Orgs"
+                      className="w-full"
+                    />
+                  </CardContent>
+                </Card>
+
+                <div className="flex min-w-0 flex-col gap-4 lg:col-span-4">
+                  <Card className="flex-1">
+                    <CardContent className="pt-5">
+                      <SegmentedQuotaBar
+                        title="Tenant Lifecycle"
+                        primaryLabel="Active"
+                        primaryValue={dashboardQuery.data.activeTenants}
+                        secondaryLabel="Trial / Suspended"
+                        secondaryValue={
+                          dashboardQuery.data.trialTenants +
+                          dashboardQuery.data.suspendedTenants
+                        }
+                        subtitleLeft={`${dashboardQuery.data.totalTenants} total orgs`}
+                        subtitleRight={`${dashboardQuery.data.suspendedTenants} suspended`}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  <Card className="flex-1">
+                    <CardContent className="pt-5">
+                      <SegmentedQuotaBar
+                        title="User Verification"
+                        primaryLabel="Verified"
+                        primaryValue={dashboardQuery.data.verifiedUsers}
+                        secondaryLabel="Unverified"
+                        secondaryValue={Math.max(
+                          0,
+                          dashboardQuery.data.totalUsers -
+                            dashboardQuery.data.verifiedUsers
+                        )}
+                        primaryColor="#10b981"
+                        secondaryColor="#f97316"
+                        subtitleLeft={`${dashboardQuery.data.totalUsers} registered`}
+                        subtitleRight="Email confirmed"
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              <Card className="min-w-0">
                 <CardHeader>
                   <CardTitle>Recent Global Security & Admin Events</CardTitle>
                 </CardHeader>
